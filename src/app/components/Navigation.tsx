@@ -58,8 +58,8 @@ export function Navigation() {
           {/* GP Avatar */}
           <div className="ml-4 flex items-center gap-3">
             <div className="text-right">
-              <div className="text-sm font-medium text-gray-900">Dr. Sarah Chen</div>
-              <div className="text-xs text-gray-600">General Practitioner</div>
+              <div className="text-sm font-medium text-gray-900">Alex Anderson</div>
+              <div className="text-xs text-gray-600">Third-Year Medical Student</div>
             </div>
             <div className="w-10 h-10 bg-gray-400 border-2 border-gray-500"></div>
           </div>
