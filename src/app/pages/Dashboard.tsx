@@ -295,10 +295,10 @@ export function Dashboard() {
           <div className="bg-white border-2 border-gray-400">
             <div className="px-6 py-4 border-b-2 border-gray-300">
               <h3 className="text-lg font-bold text-gray-900">
-                Speech Biomarkers vs Traditional Cognitive Assessments
+                How Speech Biomarkers Enhance Traditional Cognitive Assessments
               </h3>
               <p className="text-sm text-gray-600 mt-1">
-                How conversational analysis compares to MMSE and MoCA
+                Speech biomarkers work alongside MMSE and MoCA — adding an earlier, passive signal to your existing clinical workflow
               </p>
             </div>
             <div className="overflow-x-auto">
