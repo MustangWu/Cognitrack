@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { Navigation } from "../components/Navigation";
+import { Slider } from "../components/ui/slider";
 import {
+  ComposedChart,
   LineChart,
   Line,
   BarChart,
@@ -17,17 +19,11 @@ import {
 // Types
 // ---------------------------------------------------------------------------
 
-type BurdenTrendRow = {
-  year: number;
-  disease: string;
-  daly: number;
-};
+type AgeGroupRow = { age_group: string; value: number; crude_rate: number };
+type KpiRow = { sex: string; total: number };
+type BurdenByAgeResponse = { ageGroups: AgeGroupRow[]; kpis: KpiRow[] };
 
-type Burden2024Row = {
-  disease: string;
-  sex: string;
-  daly: number;
-};
+type Top10Row = { rank: number; disease: string; daly: number };
 
 type PrevalenceRow = {
   year: number;
@@ -69,8 +65,14 @@ function useFetch<T>(url: string) {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         return r.json();
       })
-      .then((d) => { setData(d); setLoading(false); })
-      .catch((e) => { setError(e.message); setLoading(false); });
+      .then((d) => {
+        setData(d);
+        setLoading(false);
+      })
+      .catch((e) => {
+        setError(e.message);
+        setLoading(false);
+      });
   }, [url]);
 
   return { data, loading, error };
@@ -108,16 +110,73 @@ function ChartShell({
   );
 }
 
-const DISEASE_COLORS: Record<string, string> = {
-  Dementia: "#1f2937",
-  Epilepsy: "#4b5563",
-  Migraine: "#6b7280",
-  "Parkinson Disease": "#9ca3af",
-  "Motor Neurone Disease": "#d1d5db",
-  "Multiple Sclerosis": "#374151",
-  "Guillain-Barre Syndrome": "#111827",
-  "Other Neurological Conditions": "#e5e7eb",
-};
+/** Reusable labelled select dropdown */
+function FilterSelect({
+  label,
+  value,
+  onChange,
+  options,
+}: {
+  label: string;
+  value: string | number;
+  onChange: (v: string) => void;
+  options: { value: string | number; label: string }[];
+}) {
+  return (
+    <div className="flex flex-col gap-1">
+      <label className="text-xs font-medium text-gray-500">{label}</label>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="border border-gray-300 rounded px-2 py-1 text-sm text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-gray-400 min-w-[130px]"
+      >
+        {options.map((o) => (
+          <option key={o.value} value={o.value}>
+            {o.label}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
+/** Small pill-style toggle button — kept for measure/metric toggles */
+function FilterBtn({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`px-3 py-1 text-xs font-medium border-2 transition-colors ${
+        active
+          ? "bg-gray-900 text-white border-gray-900"
+          : "bg-white text-gray-600 border-gray-400 hover:border-gray-600"
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
+/** Age group labels and their slider indices */
+const AGE_GROUP_OPTIONS = [
+  "Under 30",
+  "30–64",
+  "65–69",
+  "70–74",
+  "75–79",
+  "80–84",
+  "85+",
+] as const;
+
+/** Years available in neurological_burden SQL data */
+const NEUROLOGICAL_BURDEN_YEARS = [2003, 2011, 2015, 2018, 2024];
 
 const biomarkers = [
   {
@@ -182,107 +241,311 @@ const comparisonRows = [
 ];
 
 // ---------------------------------------------------------------------------
-// Graph 1 — Neurological burden trend 2003–2024
+// Graph 1 — Burden of disease by age group (combo bar + line)
 // ---------------------------------------------------------------------------
 
-function BurdenTrendChart() {
-  const { data, loading, error } = useFetch<BurdenTrendRow[]>(
-    "/api/neurological-burden-trend"
+function BurdenByAgeChart() {
+  const [year, setYear] = useState(2024);
+  const [sex, setSex] = useState("Persons");
+  const [measure, setMeasure] = useState<"daly" | "yld" | "yll">("daly");
+  const [disease, setDisease] = useState(""); // "" = All neurological conditions
+
+  // Fetch disease list for dropdown
+  const { data: conditionList } = useFetch<string[]>("/api/neurological-conditions");
+
+  const url =
+    `/api/neurological-burden-by-age?year=${year}&sex=${sex}&measure=${measure}` +
+    (disease ? `&disease=${encodeURIComponent(disease)}` : "");
+  const { data, loading, error } = useFetch<BurdenByAgeResponse>(url);
+
+  const measureLabel =
+    measure === "daly" ? "DALY" : measure === "yld" ? "YLD" : "YLL";
+
+  // KPI values
+  const kpiPersons = data?.kpis?.find((k) => k.sex === "Persons");
+  const kpiFemales = data?.kpis?.find(
+    (k) => k.sex === "Females" || k.sex === "Women"
+  );
+  const kpiMales = data?.kpis?.find(
+    (k) => k.sex === "Males" || k.sex === "Men"
   );
 
-  const chartData = (() => {
-    if (!data) return [];
-    const byYear: Record<number, Record<string, number>> = {};
-    for (const row of data) {
-      if (!byYear[row.year]) byYear[row.year] = { year: row.year };
-      byYear[row.year][row.disease] = Math.round(row.daly / 1000);
-    }
-    return Object.values(byYear).sort((a, b) => (a.year as number) - (b.year as number));
-  })();
-
-  const diseases = data ? [...new Set(data.map((r) => r.disease))] : [];
+  const chartData = (data?.ageGroups ?? []).map((r) => ({
+    age: r.age_group,
+    value: Number(r.value),
+    crudeRate: parseFloat(Number(r.crude_rate).toFixed(2)),
+  }));
 
   return (
     <ChartShell
-      title="Burden of Disease — Neurological Conditions by Year (2003–2024)"
-      subtitle="Total DALYs (thousands) per neurological disease — Persons, all ages. Source: AIHW Australian Burden of Disease Study 2024"
+      title="Burden of Disease — Neurological Conditions by Age"
+      subtitle={`${measureLabel}s and crude rate per 1,000 population — ${sex}, ${year}. Source: AIHW Australian Burden of Disease Study 2024`}
       loading={loading}
       error={error}
     >
-      <ResponsiveContainer width="100%" height={340}>
-        <LineChart data={chartData} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
+      {/* KPI Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        {[
+          {
+            label: "Australians",
+            val: kpiPersons?.total,
+            color: "text-gray-900",
+          },
+          {
+            label: "Australian females",
+            val: kpiFemales?.total,
+            color: "text-red-600",
+          },
+          {
+            label: "Australian males",
+            val: kpiMales?.total,
+            color: "text-teal-700",
+          },
+        ].map(({ label, val, color }) => (
+          <div
+            key={label}
+            className="border border-gray-300 rounded p-4 text-center"
+          >
+            <p className="text-xs text-gray-500 mb-1">
+              In {year},{" "}
+              <span className={color}>{label}</span> had
+            </p>
+            <p className="text-2xl font-bold text-gray-900">
+              {val != null ? Number(val).toLocaleString() : "—"}
+            </p>
+            <p className="text-xs text-gray-500">
+              disability-adjusted life years ({measureLabel})
+            </p>
+          </div>
+        ))}
+      </div>
+
+      {/* Filters */}
+      <div className="flex flex-wrap items-end gap-5 mb-6">
+        <FilterSelect
+          label="Select neurological condition"
+          value={disease}
+          onChange={setDisease}
+          options={[
+            { value: "", label: "All neurological conditions" },
+            ...(conditionList ?? []).map((d) => ({ value: d, label: d })),
+          ]}
+        />
+        <FilterSelect
+          label="Select sex"
+          value={sex}
+          onChange={setSex}
+          options={[
+            { value: "Persons", label: "Persons" },
+            { value: "Females", label: "Females" },
+            { value: "Males", label: "Males" },
+          ]}
+        />
+        <FilterSelect
+          label="Select year"
+          value={year}
+          onChange={(v) => setYear(Number(v))}
+          options={NEUROLOGICAL_BURDEN_YEARS.map((y) => ({
+            value: y,
+            label: String(y),
+          }))}
+        />
+        <div className="flex flex-col gap-1">
+          <label className="text-xs font-medium text-gray-500">
+            Select measure
+          </label>
+          <div className="flex gap-2">
+            {(["daly", "yld", "yll"] as const).map((m) => (
+              <FilterBtn
+                key={m}
+                active={measure === m}
+                onClick={() => setMeasure(m)}
+              >
+                {m.toUpperCase()}
+              </FilterBtn>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Combo chart: Bar (DALY) + Line (Crude rate) */}
+      <ResponsiveContainer width="100%" height={380}>
+        <ComposedChart
+          data={chartData}
+          margin={{ top: 10, right: 60, left: 10, bottom: 60 }}
+        >
           <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-          <XAxis dataKey="year" tick={{ fontSize: 11, fill: "#6b7280" }} tickLine={false} />
+          <XAxis
+            dataKey="age"
+            tick={{ fontSize: 10, fill: "#6b7280" }}
+            tickLine={false}
+            angle={-45}
+            textAnchor="end"
+            interval={0}
+            label={{
+              value: "Age group (years)",
+              position: "insideBottom",
+              offset: -50,
+              style: { fontSize: 12, fill: "#6b7280" },
+            }}
+          />
           <YAxis
+            yAxisId="left"
             tick={{ fontSize: 11, fill: "#6b7280" }}
             tickLine={false}
             axisLine={false}
-            tickFormatter={(v) => `${v}k`}
+            tickFormatter={(v) => v.toLocaleString()}
+            label={{
+              value: measureLabel,
+              angle: -90,
+              position: "insideLeft",
+              offset: -5,
+              style: { fontSize: 11, fill: "#6b7280" },
+            }}
           />
-          <Tooltip formatter={(v: number) => [`${v}k DALYs`]} />
-          <Legend wrapperStyle={{ fontSize: 12 }} />
-          {diseases.map((d) => (
-            <Line
-              key={d}
-              type="monotone"
-              dataKey={d}
-              stroke={DISEASE_COLORS[d] ?? "#9ca3af"}
-              strokeWidth={d === "Dementia" ? 2.5 : 1.5}
-              dot={false}
-              activeDot={{ r: 4 }}
-            />
-          ))}
-        </LineChart>
+          <YAxis
+            yAxisId="right"
+            orientation="right"
+            tick={{ fontSize: 11, fill: "#6b7280" }}
+            tickLine={false}
+            axisLine={false}
+            label={{
+              value: "Crude rate (per 1,000 population)",
+              angle: 90,
+              position: "insideRight",
+              offset: 10,
+              style: { fontSize: 10, fill: "#6b7280" },
+            }}
+          />
+          <Tooltip
+            formatter={(v: number, name: string) => [
+              name === "crudeRate"
+                ? `${v} per 1,000`
+                : v.toLocaleString() + ` ${measureLabel}s`,
+              name === "crudeRate" ? "Crude Rate" : measureLabel,
+            ]}
+            labelFormatter={(l) => `Age: ${l}`}
+          />
+          <Legend
+            wrapperStyle={{ fontSize: 12 }}
+            formatter={(v) =>
+              v === "value" ? `${measureLabel} (bar)` : "Crude rate (line)"
+            }
+          />
+          <Bar
+            yAxisId="left"
+            dataKey="value"
+            fill="#7fb3d3"
+            radius={0}
+            name="value"
+          />
+          <Line
+            yAxisId="right"
+            type="monotone"
+            dataKey="crudeRate"
+            stroke="#6ab04c"
+            strokeWidth={2.5}
+            dot={{ r: 2 }}
+            activeDot={{ r: 4 }}
+            name="crudeRate"
+          />
+        </ComposedChart>
       </ResponsiveContainer>
     </ChartShell>
   );
 }
 
 // ---------------------------------------------------------------------------
-// Graph 2 — Leading causes of disease burden, 2024 by sex
+// Graph 2 — Leading 10 causes of disease burden (horizontal bar)
 // ---------------------------------------------------------------------------
 
-function Burden2024Chart() {
-  const { data, loading, error } = useFetch<Burden2024Row[]>(
-    "/api/neurological-burden-2024"
-  );
+function BurdenTop10Chart() {
+  const [sex, setSex] = useState("Persons");
+  // Two-point slider: [fromIndex, toIndex] over AGE_GROUP_OPTIONS (0–6)
+  const [ageRange, setAgeRange] = useState<[number, number]>([0, 6]);
 
-  const chartData = (() => {
-    if (!data) return [];
-    const persons = data.filter((r) => r.sex === "Persons");
-    const grouped: Record<string, { disease: string; males: number; females: number; persons: number }> = {};
-    for (const row of data) {
-      if (!grouped[row.disease]) {
-        grouped[row.disease] = { disease: row.disease, males: 0, females: 0, persons: 0 };
-      }
-      if (row.sex === "Males") grouped[row.disease].males = Math.round(row.daly / 1000);
-      if (row.sex === "Females") grouped[row.disease].females = Math.round(row.daly / 1000);
-      if (row.sex === "Persons") grouped[row.disease].persons = Math.round(row.daly / 1000);
-    }
-    return Object.values(grouped)
-      .sort((a, b) => b.persons - a.persons);
-  })();
+  const ageLabel =
+    ageRange[0] === 0 && ageRange[1] === 6
+      ? "All ages"
+      : ageRange[0] === ageRange[1]
+      ? AGE_GROUP_OPTIONS[ageRange[0]]
+      : `${AGE_GROUP_OPTIONS[ageRange[0]]} – ${AGE_GROUP_OPTIONS[ageRange[1]]}`;
+
+  const url = `/api/burden-top10?sex=${encodeURIComponent(sex)}&age_from=${ageRange[0]}&age_to=${ageRange[1]}`;
+  const { data, loading, error } = useFetch<Top10Row[]>(url);
+
+  const chartData = (data ?? [])
+    .slice()
+    .sort((a, b) => a.daly - b.daly);
 
   return (
     <ChartShell
-      title="Leading Causes of Disease Burden (DALYs) — Australia 2024"
-      subtitle="Disability-Adjusted Life Years (thousands) by disease and sex. Source: AIHW Australian Burden of Disease Study 2024"
+      title="Leading 10 Causes of Disease Burden (DALY) — Australia 2024"
+      subtitle={`Disability-adjusted life years by disease — ${sex}, ${ageLabel}. Source: AIHW Dementia in Australia`}
       loading={loading}
       error={error}
     >
-      <ResponsiveContainer width="100%" height={320}>
+      {/* Filters */}
+      <div className="flex flex-wrap items-end gap-6 mb-6">
+        <FilterSelect
+          label="Select sex"
+          value={sex}
+          onChange={setSex}
+          options={[
+            { value: "Persons", label: "Persons" },
+            { value: "Men", label: "Men" },
+            { value: "Women", label: "Women" },
+          ]}
+        />
+
+        {/* Two-point age range slider */}
+        <div className="flex flex-col gap-2 min-w-[260px]">
+          <label className="text-xs font-medium text-gray-500">
+            Select age range:{" "}
+            <span className="text-gray-800 font-semibold">{ageLabel}</span>
+          </label>
+          <Slider
+            min={0}
+            max={6}
+            step={1}
+            value={ageRange}
+            onValueChange={(v) => setAgeRange(v as [number, number])}
+            minStepsBetweenThumbs={0}
+            className="w-full"
+          />
+          <div className="flex justify-between text-[10px] text-gray-400">
+            {AGE_GROUP_OPTIONS.map((g) => (
+              <span key={g}>{g.replace("Under ", "<")}</span>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <ResponsiveContainer width="100%" height={360}>
         <BarChart
           data={chartData}
           layout="vertical"
-          margin={{ top: 5, right: 30, left: 160, bottom: 5 }}
+          margin={{ top: 5, right: 40, left: 180, bottom: 20 }}
         >
-          <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" horizontal={false} />
+          <CartesianGrid
+            strokeDasharray="3 3"
+            stroke="#e5e7eb"
+            horizontal={false}
+          />
           <XAxis
             type="number"
             tick={{ fontSize: 11, fill: "#6b7280" }}
             tickLine={false}
             axisLine={false}
-            tickFormatter={(v) => `${v}k`}
+            tickFormatter={(v) =>
+              v >= 1000 ? `${Math.round(v / 1000)}K` : String(v)
+            }
+            label={{
+              value: "Disability-adjusted life years (DALY)",
+              position: "insideBottom",
+              offset: -10,
+              style: { fontSize: 11, fill: "#6b7280" },
+            }}
           />
           <YAxis
             type="category"
@@ -290,12 +553,15 @@ function Burden2024Chart() {
             tick={{ fontSize: 11, fill: "#6b7280" }}
             tickLine={false}
             axisLine={false}
-            width={155}
+            width={175}
           />
-          <Tooltip formatter={(v: number) => [`${v}k DALYs`]} />
-          <Legend wrapperStyle={{ fontSize: 12 }} />
-          <Bar dataKey="males" name="Males" fill="#1f2937" radius={0} />
-          <Bar dataKey="females" name="Females" fill="#9ca3af" radius={0} />
+          <Tooltip
+            formatter={(v: number) => [
+              `${v.toLocaleString()} DALYs`,
+              "Burden",
+            ]}
+          />
+          <Bar dataKey="daly" fill="#5f9eaf" radius={0} />
         </BarChart>
       </ResponsiveContainer>
     </ChartShell>
@@ -326,51 +592,58 @@ function PrevalenceChart() {
   const sexLines = ["Men", "Women", "Persons"] as const;
   const ageLines = ["30–64", "65–84", "85+"] as const;
   const activeLines = view === "sex" ? sexLines : ageLines;
-  const lineColors = view === "sex"
-    ? ["#1f2937", "#6b7280", "#d1d5db"]
-    : ["#1f2937", "#6b7280", "#d1d5db"];
+  const lineColors =
+    view === "sex"
+      ? { Men: "#2b8a9e", Women: "#7fb3d3", Persons: "#6c5b9e" }
+      : { "30–64": "#2b8a9e", "65–84": "#7fb3d3", "85+": "#6c5b9e" };
 
   return (
     <ChartShell
       title="Australians Living with Dementia — Projections 2025–2065"
-      subtitle="Number of Australians (thousands) projected to be living with dementia. Source: AIHW Dementia in Australia 2022"
+      subtitle="Estimated number of people living with dementia (thousands). Source: AIHW Dementia in Australia 2022"
       loading={loading}
       error={error}
     >
       <div className="flex gap-2 mb-4">
         {(["sex", "age"] as const).map((v) => (
-          <button
-            key={v}
-            onClick={() => setView(v)}
-            className={`px-3 py-1 text-xs font-medium border-2 transition-colors ${
-              view === v
-                ? "bg-gray-900 text-white border-gray-900"
-                : "bg-white text-gray-600 border-gray-400 hover:border-gray-600"
-            }`}
-          >
+          <FilterBtn key={v} active={view === v} onClick={() => setView(v)}>
             {v === "sex" ? "By Sex" : "By Age Group"}
-          </button>
+          </FilterBtn>
         ))}
       </div>
-      <ResponsiveContainer width="100%" height={320}>
-        <LineChart data={chartData} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
+      <ResponsiveContainer width="100%" height={340}>
+        <LineChart
+          data={chartData}
+          margin={{ top: 5, right: 20, left: 20, bottom: 5 }}
+        >
           <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-          <XAxis dataKey="year" tick={{ fontSize: 11, fill: "#6b7280" }} tickLine={false} />
+          <XAxis
+            dataKey="year"
+            tick={{ fontSize: 11, fill: "#6b7280" }}
+            tickLine={false}
+          />
           <YAxis
             tick={{ fontSize: 11, fill: "#6b7280" }}
             tickLine={false}
             axisLine={false}
             tickFormatter={(v) => `${v}k`}
+            label={{
+              value: "Estimated number of people living with dementia",
+              angle: -90,
+              position: "insideLeft",
+              offset: -10,
+              style: { fontSize: 10, fill: "#9ca3af" },
+            }}
           />
           <Tooltip formatter={(v: number) => [`${v}k Australians`]} />
           <Legend wrapperStyle={{ fontSize: 12 }} />
-          {activeLines.map((key, i) => (
+          {activeLines.map((key) => (
             <Line
               key={key}
               type="monotone"
               dataKey={key}
-              stroke={lineColors[i]}
-              strokeWidth={key === "Persons" ? 2.5 : 1.5}
+              stroke={(lineColors as any)[key]}
+              strokeWidth={key === "Persons" ? 2.5 : 2}
               dot={false}
               activeDot={{ r: 4 }}
             />
@@ -390,7 +663,7 @@ function MortalityChart() {
     "/api/dementia-mortality"
   );
 
-  const [metric, setMetric] = useState<"deaths" | "asr" | "crude">("deaths");
+  const [metric, setMetric] = useState<"deaths" | "asr" | "crude">("asr");
 
   const chartData = (data ?? []).map((r) => ({
     year: r.year,
@@ -415,36 +688,42 @@ function MortalityChart() {
   }));
 
   const yLabel =
-    metric === "deaths" ? "Deaths" : "Rate per 100,000";
-  const tooltipSuffix =
-    metric === "deaths" ? " deaths" : " per 100k";
+    metric === "deaths" ? "Number of deaths" : "Age-standardised rate of death";
+  const tooltipSuffix = metric === "deaths" ? " deaths" : " per 100k";
 
   return (
     <ChartShell
       title="Deaths Due to Dementia in Australia — 2009–2023"
-      subtitle="Number of deaths and mortality rates by sex. Source: AIHW Dementia Mortality S3.3"
+      subtitle="Number of deaths, crude rate and age-standardised rate by sex. Source: AIHW Dementia Mortality S3.3"
       loading={loading}
       error={error}
     >
       <div className="flex gap-2 mb-4">
         {(["deaths", "asr", "crude"] as const).map((m) => (
-          <button
+          <FilterBtn
             key={m}
+            active={metric === m}
             onClick={() => setMetric(m)}
-            className={`px-3 py-1 text-xs font-medium border-2 transition-colors ${
-              metric === m
-                ? "bg-gray-900 text-white border-gray-900"
-                : "bg-white text-gray-600 border-gray-400 hover:border-gray-600"
-            }`}
           >
-            {m === "deaths" ? "Deaths" : m === "asr" ? "Age-Standardised Rate" : "Crude Rate"}
-          </button>
+            {m === "deaths"
+              ? "Deaths"
+              : m === "asr"
+              ? "Age-Standardised Rate"
+              : "Crude Rate"}
+          </FilterBtn>
         ))}
       </div>
-      <ResponsiveContainer width="100%" height={300}>
-        <LineChart data={chartData} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
+      <ResponsiveContainer width="100%" height={320}>
+        <LineChart
+          data={chartData}
+          margin={{ top: 5, right: 20, left: 20, bottom: 5 }}
+        >
           <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-          <XAxis dataKey="year" tick={{ fontSize: 11, fill: "#6b7280" }} tickLine={false} />
+          <XAxis
+            dataKey="year"
+            tick={{ fontSize: 11, fill: "#6b7280" }}
+            tickLine={false}
+          />
           <YAxis
             tick={{ fontSize: 11, fill: "#6b7280" }}
             tickLine={false}
@@ -453,15 +732,36 @@ function MortalityChart() {
               value: yLabel,
               angle: -90,
               position: "insideLeft",
-              offset: -5,
+              offset: -10,
               style: { fontSize: 10, fill: "#9ca3af" },
             }}
           />
           <Tooltip formatter={(v: number) => [`${v}${tooltipSuffix}`]} />
           <Legend wrapperStyle={{ fontSize: 12 }} />
-          <Line type="monotone" dataKey="Men" stroke="#1f2937" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
-          <Line type="monotone" dataKey="Women" stroke="#6b7280" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
-          <Line type="monotone" dataKey="Persons" stroke="#d1d5db" strokeWidth={1.5} dot={false} activeDot={{ r: 4 }} />
+          <Line
+            type="monotone"
+            dataKey="Men"
+            stroke="#2b8a9e"
+            strokeWidth={2}
+            dot={{ r: 2.5 }}
+            activeDot={{ r: 5 }}
+          />
+          <Line
+            type="monotone"
+            dataKey="Women"
+            stroke="#7fb3d3"
+            strokeWidth={2}
+            dot={{ r: 2.5 }}
+            activeDot={{ r: 5 }}
+          />
+          <Line
+            type="monotone"
+            dataKey="Persons"
+            stroke="#6c5b9e"
+            strokeWidth={2}
+            dot={{ r: 2.5 }}
+            activeDot={{ r: 5 }}
+          />
         </LineChart>
       </ResponsiveContainer>
     </ChartShell>
@@ -483,13 +783,14 @@ export function Dashboard() {
             Statistics Dashboard
           </h1>
           <p className="text-gray-700">
-            Australian dementia prevalence and neurological disease burden — live data from PostgreSQL
+            Australian dementia prevalence and neurological disease burden — live
+            data from PostgreSQL
           </p>
         </div>
 
         <div className="grid grid-cols-1 gap-8 mb-12">
-          <BurdenTrendChart />
-          <Burden2024Chart />
+          <BurdenByAgeChart />
+          <BurdenTop10Chart />
           <PrevalenceChart />
           <MortalityChart />
         </div>
@@ -501,18 +802,26 @@ export function Dashboard() {
               Understanding Speech Biomarkers
             </h2>
             <p className="text-gray-700 max-w-3xl">
-              Conversational biomarkers are measurable linguistic and acoustic patterns extracted
-              from natural speech. Unlike traditional assessments, they can be detected passively
-              during routine consultations — with no additional patient burden.
+              Conversational biomarkers are measurable linguistic and acoustic
+              patterns extracted from natural speech. Unlike traditional
+              assessments, they can be detected passively during routine
+              consultations — with no additional patient burden.
             </p>
           </div>
 
           {/* Biomarker Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
             {biomarkers.map((b) => (
-              <div key={b.name} className="bg-white border-2 border-gray-400 p-6">
-                <h3 className="text-base font-bold text-gray-900 mb-2">{b.name}</h3>
-                <p className="text-sm text-gray-700 leading-relaxed">{b.description}</p>
+              <div
+                key={b.name}
+                className="bg-white border-2 border-gray-400 p-6"
+              >
+                <h3 className="text-base font-bold text-gray-900 mb-2">
+                  {b.name}
+                </h3>
+                <p className="text-sm text-gray-700 leading-relaxed">
+                  {b.description}
+                </p>
               </div>
             ))}
           </div>
@@ -524,28 +833,42 @@ export function Dashboard() {
                 How Speech Biomarkers Enhance Traditional Cognitive Assessments
               </h3>
               <p className="text-sm text-gray-600 mt-1">
-                Speech biomarkers work alongside MMSE and MoCA — adding an earlier, passive signal
-                to your existing clinical workflow
+                Speech biomarkers work alongside MMSE and MoCA — adding an
+                earlier, passive signal to your existing clinical workflow
               </p>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b-2 border-gray-300 bg-gray-50">
-                    <th className="text-left px-6 py-3 font-bold text-gray-700 w-1/4">Feature</th>
-                    <th className="text-left px-6 py-3 font-bold text-gray-900 w-1/4">Speech Biomarkers</th>
-                    <th className="text-left px-6 py-3 font-bold text-gray-700 w-1/4">MMSE</th>
-                    <th className="text-left px-6 py-3 font-bold text-gray-700 w-1/4">MoCA</th>
+                    <th className="text-left px-6 py-3 font-bold text-gray-700 w-1/4">
+                      Feature
+                    </th>
+                    <th className="text-left px-6 py-3 font-bold text-gray-900 w-1/4">
+                      Speech Biomarkers
+                    </th>
+                    <th className="text-left px-6 py-3 font-bold text-gray-700 w-1/4">
+                      MMSE
+                    </th>
+                    <th className="text-left px-6 py-3 font-bold text-gray-700 w-1/4">
+                      MoCA
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
                   {comparisonRows.map((row, i) => (
                     <tr
                       key={row.feature}
-                      className={`border-b border-gray-200 ${i % 2 === 0 ? "bg-white" : "bg-gray-50"}`}
+                      className={`border-b border-gray-200 ${
+                        i % 2 === 0 ? "bg-white" : "bg-gray-50"
+                      }`}
                     >
-                      <td className="px-6 py-4 font-medium text-gray-900">{row.feature}</td>
-                      <td className="px-6 py-4 text-gray-900 font-medium">{row.biomarker}</td>
+                      <td className="px-6 py-4 font-medium text-gray-900">
+                        {row.feature}
+                      </td>
+                      <td className="px-6 py-4 text-gray-900 font-medium">
+                        {row.biomarker}
+                      </td>
                       <td className="px-6 py-4 text-gray-600">{row.mmse}</td>
                       <td className="px-6 py-4 text-gray-600">{row.moca}</td>
                     </tr>
@@ -559,8 +882,9 @@ export function Dashboard() {
         {/* Attribution */}
         <div className="text-center">
           <p className="text-xs text-gray-500">
-            Data source: Australian Institute of Health and Welfare (AIHW) — Dementia in Australia
-            2022 &amp; Australian Burden of Disease Study 2024
+            Data source: Australian Institute of Health and Welfare (AIHW) —
+            Dementia in Australia 2022 &amp; Australian Burden of Disease Study
+            2024
           </p>
         </div>
       </div>
