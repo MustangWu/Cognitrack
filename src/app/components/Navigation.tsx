@@ -24,16 +24,18 @@ export function Navigation() {
           >
             Dashboard
           </Link>
-          <Link 
-            to="/patients" 
+          {/* hidden for now
+          <Link
+            to="/patients"
             className={`text-sm font-medium ${
-              location.pathname === '/patients' 
-                ? 'text-gray-900 underline' 
+              location.pathname === '/patients'
+                ? 'text-gray-900 underline'
                 : 'text-gray-600'
             }`}
           >
             Patients
           </Link>
+          */}
           <Link 
             to="/upload" 
             className={`text-sm font-medium ${
