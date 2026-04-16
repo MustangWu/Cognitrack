@@ -1,5 +1,6 @@
 import { Navigation } from "../components/Navigation";
 import { Link } from "react-router";
+import { Brain, Clock, AlertTriangle, Upload, Cpu, ClipboardList, Stethoscope } from "lucide-react";
 
 export function Landing() {
   return (
@@ -36,21 +37,27 @@ export function Landing() {
         {/* Key Statistics */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 py-12 border-b-2 border-gray-300">
           <div className="border-2 border-gray-400 p-8">
-            <div className="w-14 h-14 bg-gray-300 border-2 border-gray-400 mb-4"></div>
+            <div className="w-14 h-14 bg-gray-100 border-2 border-gray-300 mb-4 flex items-center justify-center">
+              <Brain className="w-7 h-7 text-gray-700" />
+            </div>
             <div className="text-3xl font-bold text-gray-900 mb-2">425,000</div>
             <p className="text-gray-900 font-medium mb-1">Australians with Dementia</p>
             <p className="text-sm text-gray-600">Projected to reach 1.1M by 2065</p>
           </div>
-          
+
           <div className="border-2 border-gray-400 p-8">
-            <div className="w-14 h-14 bg-gray-300 border-2 border-gray-400 mb-4"></div>
+            <div className="w-14 h-14 bg-gray-100 border-2 border-gray-300 mb-4 flex items-center justify-center">
+              <Clock className="w-7 h-7 text-gray-700" />
+            </div>
             <div className="text-3xl font-bold text-gray-900 mb-2">3–5 Years</div>
             <p className="text-gray-900 font-medium mb-1">Average Diagnosis Delay</p>
             <p className="text-sm text-gray-600">Time lost for early intervention</p>
           </div>
-          
+
           <div className="border-2 border-gray-400 p-8">
-            <div className="w-14 h-14 bg-gray-300 border-2 border-gray-400 mb-4"></div>
+            <div className="w-14 h-14 bg-gray-100 border-2 border-gray-300 mb-4 flex items-center justify-center">
+              <AlertTriangle className="w-7 h-7 text-gray-700" />
+            </div>
             <div className="text-3xl font-bold text-gray-900 mb-2">1 in 5</div>
             <p className="text-gray-900 font-medium mb-1">MCI Cases Detected by MMSE</p>
             <p className="text-sm text-gray-600">Most early-stage decline goes undetected</p>
@@ -65,7 +72,9 @@ export function Landing() {
           
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div className="text-center">
-              <div className="w-16 h-16 bg-gray-400 border-2 border-gray-500 mx-auto mb-4"></div>
+              <div className="w-16 h-16 bg-gray-100 border-2 border-gray-300 mx-auto mb-4 flex items-center justify-center">
+                <Upload className="w-8 h-8 text-gray-700" />
+              </div>
               <div className="w-10 h-10 border-2 border-gray-900 text-gray-900 font-bold flex items-center justify-center mx-auto mb-3">
                 1
               </div>
@@ -74,9 +83,11 @@ export function Landing() {
                 Upload a routine consultation audio file from your patient interaction
               </p>
             </div>
-            
+
             <div className="text-center">
-              <div className="w-16 h-16 bg-gray-400 border-2 border-gray-500 mx-auto mb-4"></div>
+              <div className="w-16 h-16 bg-gray-100 border-2 border-gray-300 mx-auto mb-4 flex items-center justify-center">
+                <Cpu className="w-8 h-8 text-gray-700" />
+              </div>
               <div className="w-10 h-10 border-2 border-gray-900 text-gray-900 font-bold flex items-center justify-center mx-auto mb-3">
                 2
               </div>
@@ -85,9 +96,11 @@ export function Landing() {
                 Our AI extracts speech biomarkers like pause ratio, lexical diversity, and utterance length
               </p>
             </div>
-            
+
             <div className="text-center">
-              <div className="w-16 h-16 bg-gray-400 border-2 border-gray-500 mx-auto mb-4"></div>
+              <div className="w-16 h-16 bg-gray-100 border-2 border-gray-300 mx-auto mb-4 flex items-center justify-center">
+                <ClipboardList className="w-8 h-8 text-gray-700" />
+              </div>
               <div className="w-10 h-10 border-2 border-gray-900 text-gray-900 font-bold flex items-center justify-center mx-auto mb-3">
                 3
               </div>
@@ -96,9 +109,11 @@ export function Landing() {
                 Receive detailed biomarker scores with clinical interpretations and risk assessment
               </p>
             </div>
-            
+
             <div className="text-center">
-              <div className="w-16 h-16 bg-gray-400 border-2 border-gray-500 mx-auto mb-4"></div>
+              <div className="w-16 h-16 bg-gray-100 border-2 border-gray-300 mx-auto mb-4 flex items-center justify-center">
+                <Stethoscope className="w-8 h-8 text-gray-700" />
+              </div>
               <div className="w-10 h-10 border-2 border-gray-900 text-gray-900 font-bold flex items-center justify-center mx-auto mb-3">
                 4
               </div>
