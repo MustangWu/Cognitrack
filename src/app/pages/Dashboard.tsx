@@ -778,23 +778,6 @@ export function Dashboard() {
       <Navigation />
 
       <div className="max-w-[1440px] mx-auto px-8 py-12">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Statistics Dashboard
-          </h1>
-          <p className="text-gray-700">
-            Australian dementia prevalence and neurological disease burden — live
-            data from PostgreSQL
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 gap-8 mb-12">
-          <BurdenByAgeChart />
-          <BurdenTop10Chart />
-          <PrevalenceChart />
-          <MortalityChart />
-        </div>
-
         {/* Speech Biomarkers Section */}
         <div className="mb-12">
           <div className="mb-8">
@@ -877,6 +860,23 @@ export function Dashboard() {
               </table>
             </div>
           </div>
+        </div>
+
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            Statistics Dashboard
+          </h1>
+          <p className="text-gray-700">
+            Australian dementia prevalence and neurological disease burden — live
+            data from PostgreSQL
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 gap-8 mb-12">
+          <BurdenByAgeChart />
+          <BurdenTop10Chart />
+          <PrevalenceChart />
+          <MortalityChart />
         </div>
 
         {/* Attribution */}
