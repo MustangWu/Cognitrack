@@ -74,6 +74,7 @@ export function Upload() {
   const validate = (): FormErrors => {
     const next: FormErrors = {};
     if (!patientId.trim()) next.patientId = "Patient ID is required.";
+    else if (!/^[A-Za-z0-9]+$/.test(patientId.trim())) next.patientId = "Patient ID must contain only letters and numbers.";
     if (!recordingDate) next.recordingDate = "Recording date is required.";
     if (!file) next.file = next.file ?? "Please select an audio file to upload.";
     if (!consentChecked) next.consent = "You must confirm patient consent before submitting.";
@@ -122,10 +123,11 @@ export function Upload() {
                   type="text"
                   value={patientId}
                   onChange={(e) => {
-                    setPatientId(e.target.value);
-                    if (e.target.value.trim()) setErrors((prev) => ({ ...prev, patientId: undefined }));
+                    const val = e.target.value.replace(/[^A-Za-z0-9]/g, "");
+                    setPatientId(val);
+                    if (val.trim()) setErrors((prev) => ({ ...prev, patientId: undefined }));
                   }}
-                  placeholder="e.g., PT-2024-001"
+                  placeholder="e.g., PT2024001"
                   className={`w-full border-2 px-4 py-3 ${errors.patientId ? "border-red-500 bg-red-50" : "border-gray-400"}`}
                 />
                 {errors.patientId && (
