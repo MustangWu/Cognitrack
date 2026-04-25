@@ -78,7 +78,7 @@ export function PatientProfile() {
         
         {/* Patient Summary Header */}
         <div className="bg-white border-2 border-gray-400 p-6 mb-8">
-          <div className="flex items-start justify-between">
+          <div className="flex items-start">
             <div className="flex-1">
               <div className="flex items-center gap-4 mb-3">
                 <h1 className="text-3xl font-bold text-gray-900">
@@ -107,9 +107,6 @@ export function PatientProfile() {
                 </div>
               </div>
             </div>
-            <button className="bg-gray-800 text-white px-5 py-2.5 border-2 border-gray-900 font-bold text-sm">
-              Export History
-            </button>
           </div>
         </div>
         
