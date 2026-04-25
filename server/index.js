@@ -177,6 +177,46 @@ app.get("/api/dementia-mortality", async (_req, res) => {
   }
 });
 
+// Patient lookup by patient_id (e.g. "PT2024001")
+app.get("/api/patients/:patientId", async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT patient_id, name, age, gender, risk_level, last_visit FROM patient WHERE patient_id = $1`,
+      [req.params.patientId]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "Patient not found" });
+    }
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Database query failed" });
+  }
+});
+
+// Create a new patient profile
+app.post("/api/patients", async (req, res) => {
+  try {
+    const { patient_id, name, age, gender, created_by } = req.body;
+    if (!patient_id || !name || !age || !gender) {
+      return res.status(400).json({ error: "patient_id, name, age, and gender are required" });
+    }
+    const result = await pool.query(
+      `INSERT INTO patient (patient_id, name, age, gender, created_by)
+       VALUES ($1, $2, $3, $4, $5)
+       RETURNING patient_id, name, age, gender, risk_level, last_visit`,
+      [patient_id, name, parseInt(age), gender, created_by || null]
+    );
+    res.status(201).json(result.rows[0]);
+  } catch (err) {
+    if (err.code === "23505") {
+      return res.status(409).json({ error: "A patient with this ID already exists" });
+    }
+    console.error(err);
+    res.status(500).json({ error: "Database query failed" });
+  }
+});
+
 // Serve Vite build in production
 if (process.env.NODE_ENV === "production") {
   const distPath = path.join(__dirname, "../dist");
