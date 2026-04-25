@@ -12,6 +12,20 @@ interface FormErrors {
   recordingDate?: string;
   file?: string;
   consent?: string;
+  newPatientName?: string;
+  newPatientAge?: string;
+  newPatientGender?: string;
+}
+
+type PatientStatus = "idle" | "searching" | "found" | "not-found";
+
+interface PatientInfo {
+  patient_id: string;
+  name: string;
+  age: number;
+  gender: string;
+  risk_level: string | null;
+  last_visit: string | null;
 }
 
 function validateFile(file: File): string | undefined {
@@ -40,7 +54,34 @@ export function Upload() {
   const [isDragging, setIsDragging] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const [patientStatus, setPatientStatus] = useState<PatientStatus>("idle");
+  const [existingPatient, setExistingPatient] = useState<PatientInfo | null>(null);
+  const [newPatientName, setNewPatientName] = useState("");
+  const [newPatientAge, setNewPatientAge] = useState("");
+  const [newPatientGender, setNewPatientGender] = useState("");
+
   const navigate = useNavigate();
+
+  const lookupPatient = async (id: string) => {
+    const trimmed = id.trim();
+    if (!trimmed || !/^[A-Za-z0-9]+$/.test(trimmed)) return;
+    setPatientStatus("searching");
+    setExistingPatient(null);
+    try {
+      const res = await fetch(`/api/patients/${encodeURIComponent(trimmed)}`);
+      if (res.ok) {
+        setExistingPatient(await res.json());
+        setPatientStatus("found");
+      } else if (res.status === 404) {
+        setPatientStatus("not-found");
+      } else {
+        setPatientStatus("idle");
+      }
+    } catch {
+      setPatientStatus("idle");
+    }
+  };
 
   const handleFileChange = (incoming: File) => {
     const error = validateFile(incoming);
@@ -77,8 +118,15 @@ export function Upload() {
     if (!patientId.trim()) next.patientId = "Patient ID is required.";
     else if (!/^[A-Za-z0-9]+$/.test(patientId.trim())) next.patientId = "Patient ID must contain only letters and numbers.";
     if (!recordingDate) next.recordingDate = "Recording date is required.";
-    if (!file) next.file = next.file ?? "Please select an audio file to upload.";
+    if (!file) next.file = "Please select an audio file to upload.";
     if (!consentChecked) next.consent = "You must confirm patient consent before submitting.";
+    if (patientStatus === "not-found") {
+      if (!newPatientName.trim()) next.newPatientName = "Patient name is required.";
+      if (!newPatientAge.trim()) next.newPatientAge = "Age is required.";
+      else if (isNaN(Number(newPatientAge)) || Number(newPatientAge) < 1 || Number(newPatientAge) > 130)
+        next.newPatientAge = "Please enter a valid age.";
+      if (!newPatientGender) next.newPatientGender = "Gender is required.";
+    }
     return next;
   };
 
@@ -90,8 +138,32 @@ export function Upload() {
       return;
     }
     setIsSubmitting(true);
-    await new Promise((r) => setTimeout(r, 1800));
-    navigate("/results");
+    try {
+      if (patientStatus === "not-found") {
+        const createRes = await fetch("/api/patients", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            patient_id: patientId.trim(),
+            name: newPatientName.trim(),
+            age: Number(newPatientAge),
+            gender: newPatientGender,
+          }),
+        });
+        if (!createRes.ok) {
+          const err = await createRes.json();
+          setErrors((prev) => ({ ...prev, patientId: err.error || "Failed to create patient profile." }));
+          setIsSubmitting(false);
+          return;
+        }
+      }
+      // Simulated upload delay — replace with real multipart upload to /api/recordings
+      await new Promise((r) => setTimeout(r, 1800));
+      navigate("/results");
+    } catch {
+      setErrors((prev) => ({ ...prev, patientId: "Network error. Please try again." }));
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -122,8 +194,11 @@ export function Upload() {
                 onChange={(e) => {
                   const val = e.target.value.replace(/[^A-Za-z0-9]/g, "");
                   setPatientId(val);
+                  setPatientStatus("idle");
+                  setExistingPatient(null);
                   if (val.trim()) setErrors((prev) => ({ ...prev, patientId: undefined }));
                 }}
+                onBlur={() => lookupPatient(patientId)}
                 placeholder="e.g., PT2024001"
                 className={`w-full px-4 py-3 border rounded-lg ${errors.patientId ? "border-red-500 bg-red-50" : "border-gray-300"}`}
               />
@@ -151,6 +226,92 @@ export function Upload() {
               )}
             </div>
           </div>
+
+          {/* Patient lookup status */}
+          {patientStatus === "searching" && (
+            <div className="mb-6 px-4 py-3 rounded-lg border border-blue-200 bg-blue-50 text-blue-800 text-sm flex items-center gap-2">
+              <span className="inline-block w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+              Searching for patient…
+            </div>
+          )}
+
+          {patientStatus === "found" && existingPatient && (
+            <div className="mb-6 px-4 py-4 rounded-lg border border-green-200 bg-green-50">
+              <p className="text-sm font-semibold text-green-800 mb-1">Patient found</p>
+              <p className="text-sm text-green-700">
+                {existingPatient.name}&nbsp;·&nbsp;Age {existingPatient.age}&nbsp;·&nbsp;{existingPatient.gender}
+                {existingPatient.risk_level && (
+                  <>&nbsp;·&nbsp;Risk: <span className="font-semibold">{existingPatient.risk_level}</span></>
+                )}
+                {existingPatient.last_visit && (
+                  <>&nbsp;·&nbsp;Last visit: {new Date(existingPatient.last_visit).toLocaleDateString("en-AU")}</>
+                )}
+              </p>
+            </div>
+          )}
+
+          {patientStatus === "not-found" && (
+            <div className="mb-6">
+              <div className="px-4 py-3 rounded-lg border border-amber-200 bg-amber-50 mb-4">
+                <p className="text-sm font-semibold text-amber-800 mb-0.5">No patient found with this ID</p>
+                <p className="text-xs text-amber-700">Fill in the details below to create a new patient profile.</p>
+              </div>
+
+              <div className="rounded-lg border border-gray-200 bg-gray-50 p-5">
+                <p className="text-sm font-semibold text-gray-800 mb-4">New Patient Profile</p>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="col-span-2">
+                    <label className="block text-sm mb-1">Full Name <span className="text-red-500">*</span></label>
+                    <input
+                      type="text"
+                      value={newPatientName}
+                      onChange={(e) => {
+                        setNewPatientName(e.target.value);
+                        if (e.target.value.trim()) setErrors((prev) => ({ ...prev, newPatientName: undefined }));
+                      }}
+                      placeholder="e.g., Margaret Thompson"
+                      className={`w-full px-4 py-2.5 border rounded-lg bg-white ${errors.newPatientName ? "border-red-400 bg-red-50" : "border-gray-300"}`}
+                    />
+                    {errors.newPatientName && <p className="mt-1 text-xs text-red-600">{errors.newPatientName}</p>}
+                  </div>
+                  <div>
+                    <label className="block text-sm mb-1">Age <span className="text-red-500">*</span></label>
+                    <input
+                      type="number"
+                      value={newPatientAge}
+                      min={1}
+                      max={130}
+                      onChange={(e) => {
+                        setNewPatientAge(e.target.value);
+                        if (e.target.value) setErrors((prev) => ({ ...prev, newPatientAge: undefined }));
+                      }}
+                      placeholder="e.g., 72"
+                      className={`w-full px-4 py-2.5 border rounded-lg bg-white ${errors.newPatientAge ? "border-red-400 bg-red-50" : "border-gray-300"}`}
+                    />
+                    {errors.newPatientAge && <p className="mt-1 text-xs text-red-600">{errors.newPatientAge}</p>}
+                  </div>
+                  <div>
+                    <label className="block text-sm mb-1">Gender <span className="text-red-500">*</span></label>
+                    <select
+                      value={newPatientGender}
+                      onChange={(e) => {
+                        setNewPatientGender(e.target.value);
+                        if (e.target.value) setErrors((prev) => ({ ...prev, newPatientGender: undefined }));
+                      }}
+                      className={`w-full px-4 py-2.5 border rounded-lg bg-white ${errors.newPatientGender ? "border-red-400 bg-red-50" : "border-gray-300"}`}
+                    >
+                      <option value="">Select gender</option>
+                      <option value="Male">Male</option>
+                      <option value="Female">Female</option>
+                      <option value="Other">Other</option>
+                      <option value="Prefer not to say">Prefer not to say</option>
+                    </select>
+                    {errors.newPatientGender && <p className="mt-1 text-xs text-red-600">{errors.newPatientGender}</p>}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Audio Upload Zone */}
           <div className="mb-6">
