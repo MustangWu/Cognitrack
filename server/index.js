@@ -5,6 +5,7 @@ import dotenv from "dotenv";
 import path from "path";
 import { fileURLToPath } from "url";
 import multer from "multer";
+import OpenAI, { toFile } from "openai";
 
 dotenv.config();
 
@@ -37,20 +38,35 @@ const upload = multer({
   },
 });
 
-// ML inference stub — replace EC2_ENDPOINT with actual URL when available
 const EC2_ENDPOINT = process.env.EC2_ENDPOINT || null;
+const openai = process.env.OPENAI_API_KEY
+  ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+  : null;
+
+async function transcribeAudio(audioBuffer, filename) {
+  if (!openai) return "[Whisper transcript — OPENAI_API_KEY not set]";
+  const file = await toFile(audioBuffer, filename);
+  const result = await openai.audio.transcriptions.create({ file, model: "whisper-1" });
+  return result.text;
+}
 
 async function callMLInference(audioBuffer, filename) {
+  const text_transcript = await transcribeAudio(audioBuffer, filename);
+
   if (EC2_ENDPOINT) {
-    const formData = new FormData();
-    formData.append("audio", new Blob([audioBuffer]), filename);
-    const response = await fetch(EC2_ENDPOINT, { method: "POST", body: formData });
+    const response = await fetch(EC2_ENDPOINT, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text: text_transcript }),
+    });
     if (!response.ok) throw new Error(`ML inference failed: ${response.statusText}`);
-    return await response.json();
+    const mlResult = await response.json();
+    return { ...mlResult, text_transcript };
   }
+
   // Stub: returns mock data until EC2 endpoint is ready
   return {
-    text_transcript: "[Whisper transcript — pending EC2 integration]",
+    text_transcript,
     mlu_score: 8.5,
     pause_ratio: 0.12,
     type_token_ratio: 0.65,
