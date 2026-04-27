@@ -161,7 +161,7 @@ INSERT INTO RECORDING (recording_id, upload_timestamp, text_transcript, patient_
 -- Stella Stevens
 (22, '2007-02-18 10:10:00',
 'I started doing this about four years ago, I think, and I''ve accumulated a lot of photographs because the collectors have given me some. So now you''re a collector. And then I''m not [laughs]. I''m a collector and also a kind of a dealer in that I always have photos available for my fans, and every year I try to make a new pin-up because I''m one of the top pin-ups in the world. Yes. And it''s been a difficult thing to be a serious actress and a pin-up because there are two different worlds, and it''s a funny thing.',
-'PT-2024-009');         --15 years after symptom onset
+'PT-2024-009'),         --15 years after symptom onset
 
 
 -- Viv Nicholson
