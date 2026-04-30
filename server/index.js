@@ -87,17 +87,13 @@ function buildTimestampedTranscript(words) {
 
 async function transcribeAudio(audioBuffer) {
   if (!elevenlabs) return "[Transcript — ELEVENLABS_API_KEY not set]";
-  try {
-    const result = await elevenlabs.speechToText.convert({
-      file: new Blob([audioBuffer], { type: "audio/wav" }),
-      model_id: "scribe_v1",
-    });
-    return result.words?.length
-      ? buildTimestampedTranscript(result.words)
-      : result.text;
-  } catch (err) {
-    throw new Error("ElevenLabs STT failed: " + err.message);
-  }
+  const result = await elevenlabs.speechToText.convert({
+    file: new Blob([audioBuffer], { type: "audio/wav" }),
+    model_id: "scribe_v1",
+  });
+  return result.words?.length
+    ? buildTimestampedTranscript(result.words)
+    : result.text;
 }
 
 /**
@@ -156,12 +152,8 @@ async function callMLInference(audioBuffer, patientId, client) {
         signal: controller.signal,
       });
       if (!response.ok)
-        throw new Error(`EC2 inference HTTP error: ${response.status} ${response.statusText}`);
+        throw new Error(`ML inference failed: ${response.statusText}`);
       mlResult = await response.json();
-    } catch (err) {
-      clearTimeout(timeout);
-      const cause = err.cause?.message ?? err.cause ?? "";
-      throw new Error("EC2 fetch failed: " + err.message + (cause ? " | cause: " + cause : ""));
     } finally {
       clearTimeout(timeout);
     }
@@ -464,7 +456,7 @@ app.post("/api/recordings", upload.single("audio"), async (req, res) => {
   } catch (err) {
     await client.query("ROLLBACK");
     console.error(err);
-    res.status(500).json({ error: "Failed to process recording", debug: err?.message ?? String(err) });
+    res.status(500).json({ error: "Failed to process recording" });
   } finally {
     client.release();
   }
