@@ -34,6 +34,7 @@ CREATE TABLE IF NOT EXISTS biomarker_analysis (
   type_token_ratio     NUMERIC(8,4),
   filler_word_count    INTEGER,
   syntactic_complexity NUMERIC(8,4),
+  biomarker_summaries  JSONB,
   analysis_timestamp   TIMESTAMPTZ DEFAULT NOW(),
   recording_id         INTEGER NOT NULL REFERENCES recording(recording_id),
   patient_id           VARCHAR(50) NOT NULL REFERENCES patient(patient_id)
