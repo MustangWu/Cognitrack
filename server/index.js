@@ -160,7 +160,8 @@ async function callMLInference(audioBuffer, patientId, client) {
       mlResult = await response.json();
     } catch (err) {
       clearTimeout(timeout);
-      throw new Error("EC2 fetch failed: " + err.message);
+      const cause = err.cause?.message ?? err.cause ?? "";
+      throw new Error("EC2 fetch failed: " + err.message + (cause ? " | cause: " + cause : ""));
     } finally {
       clearTimeout(timeout);
     }
