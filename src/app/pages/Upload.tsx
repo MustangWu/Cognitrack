@@ -2,6 +2,7 @@ import { Navigation } from "../components/Navigation";
 import { useState } from "react";
 import { useNavigate } from "react-router";
 import { Check } from "lucide-react";
+import { useSession } from "../context/SessionContext";
 
 const MAX_FILE_SIZE_MB = 100;
 const ACCEPTED_FORMATS = [".mp3", ".wav", ".m4a"];
@@ -62,6 +63,7 @@ export function Upload() {
   const [newPatientGender, setNewPatientGender] = useState("");
 
   const navigate = useNavigate();
+  const { setSessionData } = useSession();
 
   const lookupPatient = async (id: string) => {
     const trimmed = id.trim();
@@ -170,6 +172,24 @@ export function Upload() {
         setIsSubmitting(false);
         return;
       }
+      const result = await uploadRes.json();
+      const b = result.biomarkers ?? {};
+      const r = result.risk ?? {};
+      setSessionData({
+        patientId: patientId.trim(),
+        patientName: existingPatient?.name ?? newPatientName.trim(),
+        recordingDate,
+        transcript: result.transcript ?? null,
+        mlu_score: b.mlu_score,
+        pause_ratio: b.pause_ratio,
+        type_token_ratio: b.type_token_ratio,
+        filler_word_count: b.filler_word_count,
+        syntactic_complexity: b.syntactic_complexity,
+        biomarker_summaries: b.biomarker_summaries ?? null,
+        dementia_risk_level: r.dementia_risk_level,
+        confidence_score: r.confidence_score,
+        trend_direction: r.trend_direction,
+      });
       navigate("/results");
     } catch {
       setErrors((prev) => ({ ...prev, patientId: "Network error. Please try again." }));
