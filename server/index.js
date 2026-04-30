@@ -148,23 +148,14 @@ async function callMLInference(audioBuffer) {
       const response = await fetch(EC2_ENDPOINT, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: "medgemma",
-          messages: [{ role: "user", content: text_transcript }],
-          max_tokens: 300,
-        }),
+        body: JSON.stringify({ prompt: text_transcript, max_new_tokens: 300 }),
         signal: controller.signal,
       });
       if (response.status === 503)
         throw new Error("The analysis server is currently busy. Please wait a moment and try again.");
       if (!response.ok)
         throw new Error(`ML inference failed: ${response.statusText}`);
-
-      const raw = await response.json();
-      const content = raw.choices?.[0]?.message?.content ?? "";
-      const jsonMatch = content.match(/```json\s*([\s\S]*?)```/) || content.match(/({[\s\S]*})/);
-      if (!jsonMatch) throw new Error("Failed to parse inference response");
-      mlResult = JSON.parse(jsonMatch[1]);
+      mlResult = await response.json();
     } finally {
       clearTimeout(timeout);
     }
