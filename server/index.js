@@ -148,7 +148,7 @@ async function callMLInference(audioBuffer) {
       const response = await fetch(EC2_ENDPOINT, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt: text_transcript, max_new_tokens: 300 }),
+        body: JSON.stringify({ prompt: text_transcript, max_new_tokens: 900 }),
         signal: controller.signal,
       });
       if (response.status === 503)
