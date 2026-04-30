@@ -87,13 +87,17 @@ function buildTimestampedTranscript(words) {
 
 async function transcribeAudio(audioBuffer) {
   if (!elevenlabs) return "[Transcript — ELEVENLABS_API_KEY not set]";
-  const result = await elevenlabs.speechToText.convert({
-    file: new Blob([audioBuffer], { type: "audio/wav" }),
-    model_id: "scribe_v1",
-  });
-  return result.words?.length
-    ? buildTimestampedTranscript(result.words)
-    : result.text;
+  try {
+    const result = await elevenlabs.speechToText.convert({
+      file: new Blob([audioBuffer], { type: "audio/wav" }),
+      model_id: "scribe_v1",
+    });
+    return result.words?.length
+      ? buildTimestampedTranscript(result.words)
+      : result.text;
+  } catch (err) {
+    throw new Error("ElevenLabs STT failed: " + err.message);
+  }
 }
 
 /**
@@ -152,8 +156,11 @@ async function callMLInference(audioBuffer, patientId, client) {
         signal: controller.signal,
       });
       if (!response.ok)
-        throw new Error(`ML inference failed: ${response.statusText}`);
+        throw new Error(`EC2 inference HTTP error: ${response.status} ${response.statusText}`);
       mlResult = await response.json();
+    } catch (err) {
+      clearTimeout(timeout);
+      throw new Error("EC2 fetch failed: " + err.message);
     } finally {
       clearTimeout(timeout);
     }
