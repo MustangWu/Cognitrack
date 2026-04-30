@@ -147,7 +147,7 @@ async function callMLInference(audioBuffer) {
     try {
       const response = await fetch(EC2_ENDPOINT, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "ngrok-skip-browser-warning": "true" },
         body: JSON.stringify({ prompt: text_transcript, max_new_tokens: 900 }),
         signal: controller.signal,
       });
