@@ -65,6 +65,33 @@ export function Upload() {
   const navigate = useNavigate();
   const { setSessionData } = useSession();
 
+  const loadDemo = () => {
+    setSessionData({
+      patientId: "PT-2024-001",
+      patientName: "Margaret Thompson",
+      recordingDate: "2026-04-30",
+      transcript:
+        "[00:00:01 - 00:00:06] Um, well I woke up this morning and I had some breakfast\n[00:00:07 - 00:00:14] I think it was toast, or maybe it was um, cereal, I can't quite remember\n[00:00:15 - 00:00:22] My daughter called me, she lives um, not too far, the name escapes me right now\n[00:00:23 - 00:00:30] I went for a short walk, the weather was, uh, it was nice I think",
+      mlu_score: 9.12,
+      pause_ratio: 0.319,
+      type_token_ratio: 0.685,
+      filler_word_count: 5,
+      syntactic_complexity: 3.5,
+      dementia_risk_level: "Moderate Risk",
+      confidence_score: 0.85,
+      trend_direction: "stable",
+      biomarker_summaries: {
+        mlu_score: { value: 9.12, summary: "The MLU score of 9.12 words per utterance is within the normal range (7–12), indicating relatively standard sentence length and structure." },
+        pause_ratio: { value: 0.319, summary: "The pause ratio of 31.9% indicates a significant amount of silence or gaps in speech, potentially reflecting cognitive processing difficulties or reduced fluency." },
+        type_token_ratio: { value: 0.685, summary: "The type-token ratio of 0.685 suggests limited lexical diversity, meaning the speaker primarily uses a small set of words, which can be associated with reduced cognitive processing speed." },
+        filler_word_count: { value: 5, summary: "The presence of filler words such as 'um' and 'uh' suggests potential hesitation or difficulty formulating thoughts clearly." },
+        syntactic_complexity: { value: 3.5, summary: "The transcript contains relatively simple sentence structures with a lack of complex clauses, consistent with a moderate syntactic complexity score." },
+        overall_risk: { value: "Moderate Risk", summary: "The combination of moderate syntactic complexity, a high pause ratio, and a low type-token ratio suggests potential cognitive processing difficulties, contributing to a moderate dementia risk assessment." },
+      },
+    });
+    navigate("/results");
+  };
+
   const lookupPatient = async (id: string) => {
     const trimmed = id.trim();
     if (!trimmed || !/^[A-Za-z0-9]+$/.test(trimmed)) return;
@@ -432,6 +459,20 @@ export function Upload() {
             className="w-full bg-[#2d5a8f] text-white py-3 rounded-lg hover:bg-[#234a75] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
           >
             {isSubmitting ? "Analysing…" : "Upload & Analyse"}
+          </button>
+
+          <div className="relative flex items-center gap-3 my-1">
+            <div className="flex-1 h-px bg-gray-200" />
+            <span className="text-xs text-gray-400">or</span>
+            <div className="flex-1 h-px bg-gray-200" />
+          </div>
+
+          <button
+            type="button"
+            onClick={loadDemo}
+            className="w-full border border-gray-300 text-gray-600 py-3 rounded-lg hover:bg-gray-50 transition-colors text-sm"
+          >
+            Load Demo Results
           </button>
         </form>
       </div>
