@@ -136,19 +136,19 @@ async function computeTrendDirection(
  * Returns flat biomarkers + biomarker_summaries from a single /chat call.
  * trend_direction is computed here in the backend from DB history.
  */
-async function callMLInference(audioBuffer, patientId, client) {
+async function callMLInference(audioBuffer) {
   const text_transcript = await transcribeAudio(audioBuffer);
 
   if (EC2_ENDPOINT) {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 300_000); // 5 min timeout for CPU inference
+    const timeout = setTimeout(() => controller.abort(), 900_000); // 15 min timeout for CPU inference
 
     let mlResult;
     try {
       const response = await fetch(EC2_ENDPOINT, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt: text_transcript, max_new_tokens: 400 }),
+        body: JSON.stringify({ prompt: text_transcript, max_new_tokens: 600 }),
         signal: controller.signal,
       });
       if (!response.ok)
@@ -158,14 +158,7 @@ async function callMLInference(audioBuffer, patientId, client) {
       clearTimeout(timeout);
     }
 
-    const trend_direction = await computeTrendDirection(
-      client,
-      patientId,
-      mlResult.confidence_score,
-      mlResult.dementia_risk_level,
-    );
-
-    return { ...mlResult, text_transcript, trend_direction };
+    return { ...mlResult, text_transcript };
   }
 
   // Stub — used when EC2_ENDPOINT is not set (local dev / testing)
@@ -366,16 +359,25 @@ app.post("/api/recordings", upload.single("audio"), async (req, res) => {
       .json({ error: "patient_id and audio file are required" });
   }
 
+  // Run ElevenLabs + EC2 inference before acquiring a DB connection —
+  // inference takes 2–15 min and would exhaust the connection's idle timeout.
+  const mlResult = await callMLInference(audioFile.buffer).catch((err) => {
+    res.status(500).json({ error: "Inference failed: " + err.message });
+    return null;
+  });
+  if (!mlResult) return;
+
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
 
-    // ML inference — passes client so trend_direction can be computed from history
-    const mlResult = await callMLInference(
-      audioFile.buffer,
-      patient_id,
+    const trend_direction = await computeTrendDirection(
       client,
+      patient_id,
+      mlResult.confidence_score,
+      mlResult.dementia_risk_level,
     );
+    mlResult.trend_direction = trend_direction;
 
     // Insert recording
     const {
