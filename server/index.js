@@ -460,7 +460,7 @@ app.post("/api/recordings", upload.single("audio"), async (req, res) => {
   } catch (err) {
     await client.query("ROLLBACK");
     console.error(err);
-    res.status(500).json({ error: "Failed to process recording" });
+    res.status(500).json({ error: "Failed to process recording", debug: err?.message ?? String(err) });
   } finally {
     client.release();
   }
