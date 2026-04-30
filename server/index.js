@@ -151,6 +151,8 @@ async function callMLInference(audioBuffer) {
         body: JSON.stringify({ prompt: text_transcript, max_new_tokens: 600 }),
         signal: controller.signal,
       });
+      if (response.status === 503)
+        throw new Error("The analysis server is currently busy. Please wait a moment and try again.");
       if (!response.ok)
         throw new Error(`ML inference failed: ${response.statusText}`);
       mlResult = await response.json();
