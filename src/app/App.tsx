@@ -1,11 +1,14 @@
 import { RouterProvider } from 'react-router';
 import { router } from './routes';
 import { SessionProvider } from './context/SessionContext';
+import { PasswordGate } from './components/PasswordGate';
 
 export default function App() {
   return (
-    <SessionProvider>
-      <RouterProvider router={router} />
-    </SessionProvider>
+    <PasswordGate>
+      <SessionProvider>
+        <RouterProvider router={router} />
+      </SessionProvider>
+    </PasswordGate>
   );
 }
