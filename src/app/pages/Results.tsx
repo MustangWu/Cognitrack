@@ -82,7 +82,7 @@ function exportToPDF(s: AnalysisResult) {
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(11);
   doc.setFont("helvetica", "bold");
-  doc.text("NeuroTechCare Clinical Platform", margin, 9.5);
+  doc.text("Cognitrack", margin, 9.5);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
   doc.text("Analysis Report", pageWidth - margin, 9.5, { align: "right" });
@@ -207,7 +207,7 @@ function exportToPDF(s: AnalysisResult) {
     doc.setTextColor(120, 120, 120);
     doc.setFontSize(8);
     doc.setFont("helvetica", "normal");
-    doc.text("NeuroTechCare Clinical Platform — Confidential", margin, doc.internal.pageSize.getHeight() - 4);
+    doc.text("Cognitrack — Confidential", margin, doc.internal.pageSize.getHeight() - 4);
     doc.text(`Page ${i} of ${totalPages}`, pageWidth - margin, doc.internal.pageSize.getHeight() - 4, { align: "right" });
   }
 
