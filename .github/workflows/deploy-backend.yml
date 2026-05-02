@@ -26,19 +26,29 @@ jobs:
       - name: Clean dev dependencies for deployment
         run: npm prune --production
 
-      - name: Select publish profile
-        id: profile
-        run: |
-          case "${{ github.ref_name }}" in
-            iteration1) echo "secret=AZURE_WEBAPP_PUBLISH_PROFILE_ITERATION1" >> $GITHUB_OUTPUT ;;
-            iteration2) echo "secret=AZURE_WEBAPP_PUBLISH_PROFILE_ITERATION2" >> $GITHUB_OUTPUT ;;
-            *)          echo "secret=AZURE_WEBAPP_PUBLISH_PROFILE"             >> $GITHUB_OUTPUT ;;
-          esac
-
-      - name: Deploy to Azure Web App
+      - name: Deploy to production (main)
+        if: github.ref_name == 'main'
         uses: azure/webapps-deploy@v2
         with:
           app-name: Cognitrack
-          slot-name: ${{ github.ref_name != 'main' && github.ref_name || 'production' }}
-          publish-profile: ${{ secrets[steps.profile.outputs.secret] }}
+          slot-name: production
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+          package: .
+
+      - name: Deploy to iteration1
+        if: github.ref_name == 'iteration1'
+        uses: azure/webapps-deploy@v2
+        with:
+          app-name: Cognitrack
+          slot-name: iteration1
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE_ITERATION1 }}
+          package: .
+
+      - name: Deploy to iteration2
+        if: github.ref_name == 'iteration2'
+        uses: azure/webapps-deploy@v2
+        with:
+          app-name: Cognitrack
+          slot-name: iteration2
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE_ITERATION2 }}
           package: .
