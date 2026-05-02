@@ -36,9 +36,9 @@ jobs:
 
       - name: Deploy to iteration1
         if: github.ref_name == 'iteration1'
-        uses: azure/webapps-deploy@v3
+        uses: azure/webapps-deploy@v2
         with:
-          app-name: CognitrackIteration1
+          app-name: cognitrack-iteration1
           publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE_ITERATION1 }}
           package: .
 
@@ -46,6 +46,6 @@ jobs:
         if: github.ref_name == 'iteration2'
         uses: azure/webapps-deploy@v2
         with:
-          app-name: CognitrackIteration2
+          app-name: cognitrack-iteration2
           publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE_ITERATION2 }}
           package: .
