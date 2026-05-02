@@ -31,7 +31,6 @@ jobs:
         uses: azure/webapps-deploy@v2
         with:
           app-name: Cognitrack
-          slot-name: production
           publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
           package: .
 
@@ -39,8 +38,7 @@ jobs:
         if: github.ref_name == 'iteration1'
         uses: azure/webapps-deploy@v2
         with:
-          app-name: Cognitrack
-          slot-name: iteration1
+          app-name: CognitrackIteration1
           publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE_ITERATION1 }}
           package: .
 
@@ -48,7 +46,6 @@ jobs:
         if: github.ref_name == 'iteration2'
         uses: azure/webapps-deploy@v2
         with:
-          app-name: Cognitrack
-          slot-name: iteration2
+          app-name: CognitrackIteration2
           publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE_ITERATION2 }}
           package: .
