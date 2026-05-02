@@ -5,8 +5,8 @@ const SESSION_ID_KEY = "cognitrack_session_id";
 const LAST_SESSION_KEY = "cognitrack_last_session";
 
 export interface AnalysisResult {
-  patientId: string;
-  patientName: string;
+  personId: string;
+  personName: string;
   recordingDate: string;
   transcript: string | null;
   mlu_score: number;

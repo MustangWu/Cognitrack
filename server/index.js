@@ -98,12 +98,12 @@ async function transcribeAudio(audioBuffer) {
 
 /**
  * Compute trend_direction by comparing the new confidence_score against the
- * patient's most recent previous assessment.
+ * person's most recent previous assessment.
  * Returns "stable" | "improving" | "declining"
  */
 async function computeTrendDirection(
   client,
-  patientId,
+  personId,
   newConfidenceScore,
   newRiskLevel,
 ) {
@@ -111,10 +111,10 @@ async function computeTrendDirection(
     `SELECT RA.confidence_score, RA.dementia_risk_level
      FROM risk_assessment RA
      JOIN biomarker_analysis BA ON RA.analysis_id = BA.analysis_id
-     WHERE BA.patient_id = $1
+     WHERE BA.person_id = $1
      ORDER BY BA.analysis_timestamp DESC
      LIMIT 1`,
-    [patientId],
+    [personId],
   );
 
   if (rows.length === 0) return "stable"; // first recording — no history to compare
@@ -352,13 +352,13 @@ app.get("/api/dementia-mortality", async (_req, res) => {
 
 // Upload audio → transcribe → ML inference → store results
 app.post("/api/recordings", upload.single("audio"), async (req, res) => {
-  const { patient_id, recording_date } = req.body;
+  const { person_id, recording_date } = req.body;
   const audioFile = req.file;
 
-  if (!patient_id || !audioFile) {
+  if (!person_id || !audioFile) {
     return res
       .status(400)
-      .json({ error: "patient_id and audio file are required" });
+      .json({ error: "person_id and audio file are required" });
   }
 
   // Run ElevenLabs + EC2 inference before acquiring a DB connection —
@@ -375,7 +375,7 @@ app.post("/api/recordings", upload.single("audio"), async (req, res) => {
 
     const trend_direction = await computeTrendDirection(
       client,
-      patient_id,
+      person_id,
       mlResult.confidence_score,
       mlResult.dementia_risk_level,
     );
@@ -385,12 +385,12 @@ app.post("/api/recordings", upload.single("audio"), async (req, res) => {
     const {
       rows: [rec],
     } = await client.query(
-      `INSERT INTO recording (recording_date, text_transcript, patient_id)
+      `INSERT INTO recording (recording_date, text_transcript, person_id)
        VALUES ($1, $2, $3) RETURNING recording_id`,
       [
         recording_date || new Date().toISOString().split("T")[0],
         mlResult.text_transcript,
-        patient_id,
+        person_id,
       ],
     );
 
@@ -400,7 +400,7 @@ app.post("/api/recordings", upload.single("audio"), async (req, res) => {
     } = await client.query(
       `INSERT INTO biomarker_analysis
          (mlu_score, pause_ratio, type_token_ratio, filler_word_count,
-          syntactic_complexity, biomarker_summaries, recording_id, patient_id)
+          syntactic_complexity, biomarker_summaries, recording_id, person_id)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING analysis_id`,
       [
         mlResult.mlu_score,
@@ -410,7 +410,7 @@ app.post("/api/recordings", upload.single("audio"), async (req, res) => {
         mlResult.syntactic_complexity,
         JSON.stringify(mlResult.biomarker_summaries ?? null),
         rec.recording_id,
-        patient_id,
+        person_id,
       ],
     );
 
@@ -427,13 +427,13 @@ app.post("/api/recordings", upload.single("audio"), async (req, res) => {
       ],
     );
 
-    // Keep patient's risk_level and last_visit current
+    // Keep person's risk_level and last_visit current
     await client.query(
-      `UPDATE patient SET risk_level = $1, last_visit = $2 WHERE patient_id = $3`,
+      `UPDATE person SET risk_level = $1, last_visit = $2 WHERE person_id = $3`,
       [
         mlResult.dementia_risk_level,
         recording_date || new Date().toISOString().split("T")[0],
-        patient_id,
+        person_id,
       ],
     );
 
@@ -466,8 +466,8 @@ app.post("/api/recordings", upload.single("audio"), async (req, res) => {
   }
 });
 
-// Patient biomarker history — includes biomarker_summaries
-app.get("/api/patients/:patientId/history", async (req, res) => {
+// Person biomarker history — includes biomarker_summaries
+app.get("/api/persons/:personId/history", async (req, res) => {
   try {
     const result = await pool.query(
       `SELECT
@@ -487,9 +487,9 @@ app.get("/api/patients/:patientId/history", async (req, res) => {
        FROM biomarker_analysis BA
        JOIN risk_assessment RA ON BA.analysis_id = RA.analysis_id
        JOIN recording R        ON BA.recording_id = R.recording_id
-       WHERE BA.patient_id = $1
+       WHERE BA.person_id = $1
        ORDER BY BA.analysis_timestamp DESC`,
-      [req.params.patientId],
+      [req.params.personId],
     );
     res.json(result.rows);
   } catch (err) {
@@ -498,16 +498,16 @@ app.get("/api/patients/:patientId/history", async (req, res) => {
   }
 });
 
-// Patient lookup
-app.get("/api/patients/:patientId", async (req, res) => {
+// Person lookup
+app.get("/api/persons/:personId", async (req, res) => {
   try {
     const result = await pool.query(
-      `SELECT patient_id, name, age, gender, risk_level, last_visit
-       FROM patient WHERE patient_id = $1`,
-      [req.params.patientId],
+      `SELECT person_id, name, age, gender, risk_level, last_visit
+       FROM person WHERE person_id = $1`,
+      [req.params.personId],
     );
     if (result.rows.length === 0)
-      return res.status(404).json({ error: "Patient not found" });
+      return res.status(404).json({ error: "Person not found" });
     res.json(result.rows[0]);
   } catch (err) {
     console.error(err);
@@ -515,27 +515,27 @@ app.get("/api/patients/:patientId", async (req, res) => {
   }
 });
 
-// Create patient
-app.post("/api/patients", async (req, res) => {
+// Create person
+app.post("/api/persons", async (req, res) => {
   try {
-    const { patient_id, name, age, gender, created_by } = req.body;
-    if (!patient_id || !name || !age || !gender) {
+    const { person_id, name, age, gender, created_by } = req.body;
+    if (!person_id || !name || !age || !gender) {
       return res
         .status(400)
-        .json({ error: "patient_id, name, age, and gender are required" });
+        .json({ error: "person_id, name, age, and gender are required" });
     }
     const result = await pool.query(
-      `INSERT INTO patient (patient_id, name, age, gender, created_by)
+      `INSERT INTO person (person_id, name, age, gender, created_by)
        VALUES ($1, $2, $3, $4, $5)
-       RETURNING patient_id, name, age, gender, risk_level, last_visit`,
-      [patient_id, name, parseInt(age), gender, created_by || null],
+       RETURNING person_id, name, age, gender, risk_level, last_visit`,
+      [person_id, name, parseInt(age), gender, created_by || null],
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {
     if (err.code === "23505")
       return res
         .status(409)
-        .json({ error: "A patient with this ID already exists" });
+        .json({ error: "A person with this ID already exists" });
     console.error(err);
     res.status(500).json({ error: "Database query failed" });
   }

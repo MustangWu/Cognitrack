@@ -3,8 +3,8 @@ import { Landing } from "./pages/Landing";
 import { Dashboard } from "./pages/Dashboard";
 import { Upload } from "./pages/Upload";
 import { Results } from "./pages/Results";
-import { PatientProfile } from "./pages/PatientProfile";
-import { PatientList } from "./pages/PatientList";
+import { PersonProfile } from "./pages/PersonProfile";
+import { PersonList } from "./pages/PersonList";
 
 export const router = createBrowserRouter([
   {
@@ -24,11 +24,11 @@ export const router = createBrowserRouter([
     Component: Results,
   },
   {
-    path: "/patient/:id",
-    Component: PatientProfile,
+    path: "/person/:id",
+    Component: PersonProfile,
   },
   {
-    path: "/patients",
-    Component: PatientList,
+    path: "/persons",
+    Component: PersonList,
   },
 ]);

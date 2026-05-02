@@ -1,6 +1,6 @@
--- 1. PATIENT TABLE
-CREATE TABLE IF NOT EXISTS PATIENT (
-    patient_id          VARCHAR(50) PRIMARY KEY, 
+-- 1. PERSON TABLE
+CREATE TABLE IF NOT EXISTS PERSON (
+    person_id          VARCHAR(50) PRIMARY KEY, 
     name                VARCHAR(100) NOT NULL,
     age                 INTEGER NOT NULL CHECK (age > 0 AND age < 131),
     gender              VARCHAR(20) NOT NULL,
@@ -13,9 +13,9 @@ CREATE TABLE IF NOT EXISTS RECORDING (
     recording_id        INT PRIMARY KEY,
     upload_timestamp    TIMESTAMPTZ DEFAULT NOW(),
     text_transcript     TEXT,
-    patient_id          VARCHAR(50) NOT NULL, 
+    person_id          VARCHAR(50) NOT NULL, 
 
-    FOREIGN KEY (patient_id) REFERENCES PATIENT(patient_id)
+    FOREIGN KEY (person_id) REFERENCES PERSON(person_id)
 );
 
 
@@ -30,10 +30,10 @@ CREATE TABLE IF NOT EXISTS BIOMARKER_ANALYSIS (
     analysis_timestamp   TIMESTAMPTZ DEFAULT NOW(),
     recording_id         INT,
     risk_id              INT,
-    patient_id           VARCHAR(50) NOT NULL,
+    person_id           VARCHAR(50) NOT NULL,
 
     FOREIGN KEY (recording_id) REFERENCES RECORDING(recording_id),
-    FOREIGN KEY (patient_id) REFERENCES PATIENT(patient_id),
+    FOREIGN KEY (person_id) REFERENCES PERSON(person_id),
 --  FOREIGN KEY (risk_id) REFERENCES RISK_ASSESSMENT(risk_id)
 --  Removed the foreign key from biomarker_analysis to risk_assessment to avoid a circular dependency. 
 --  Keeping both directions would make data insertion difficult, since each table would depend on the other existing first.
@@ -52,8 +52,8 @@ CREATE TABLE IF NOT EXISTS RISK_ASSESSMENT (
 );
 
 
--- 5. INSERT INTO PATIENT
-INSERT INTO PATIENT (patient_id, name, age, gender, cache_session_id) VALUES
+-- 5. INSERT INTO PERSON
+INSERT INTO PERSON (person_id, name, age, gender, cache_session_id) VALUES
 ('PT-2024-001', 'Aileen Hernandez', 72, 'Female', 1001),
 ('PT-2024-002', 'B B King', 75, 'Male', 1002),
 ('PT-2024-003', 'Charmian Carr', 73, 'Female', 1003),
@@ -70,7 +70,7 @@ INSERT INTO PATIENT (patient_id, name, age, gender, cache_session_id) VALUES
 -- The recording timestamps are assigned according to the audio file naming convention,
 -- which represents recordings from different time periods. 
 -- The intervals between timestamps are intentionally set (e.g., 3–4 years apart) to reflect temporal progression, rather than being randomly generated.
-INSERT INTO RECORDING (recording_id, upload_timestamp, text_transcript, patient_id) VALUES
+INSERT INTO RECORDING (recording_id, upload_timestamp, text_transcript, person_id) VALUES
 -- Aileen Hernandez
 (1, '2015-06-15 10:00:00',
 '[00:00:00 - 00:00:23] Well this is not gonna sound like very ladylike and what my mother did was she took me by the hand, she took me down to the person who had come up with this idea of having a petition, and she walked right in and into the kitchen and she said to him, "What, what made you decide that you should have us not living in this neighborhood? Who are you to make that decision?"

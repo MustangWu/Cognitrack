@@ -17,7 +17,7 @@ export function Landing() {
             </h1>
             <p className="text-gray-600 mb-8">
               Empower your clinical practice with cutting-edge speech analysis technology.
-              Detect cognitive decline, make confident referrals, and improve patient outcomes.
+              Detect cognitive decline, make confident referrals, and improve person outcomes.
             </p>
             <div className="flex gap-4">
               <Link
