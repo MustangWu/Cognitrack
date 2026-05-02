@@ -96,7 +96,7 @@ function exportToPDF(s: AnalysisResult) {
   doc.setFontSize(10);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(80, 80, 80);
-  doc.text(`Patient: ${s.patientName} (${s.patientId})`, margin, y);
+  doc.text(`Person: ${s.patientName} (${s.patientId})`, margin, y);
   y += 5;
   doc.text(`Recording Date: ${formatDate(s.recordingDate)}`, margin, y);
   y += 5;
@@ -278,7 +278,7 @@ export function Results() {
             <div className="mb-8">
               <h1 className="text-3xl text-gray-900 mb-2">Analysis Results</h1>
               <p className="text-gray-600 leading-relaxed">
-                Patient: {s.patientName} ({s.patientId})
+                Person: {s.patientName} ({s.patientId})
                 <br />
                 Recording Date: {formatDate(s.recordingDate)}
               </p>
@@ -287,7 +287,7 @@ export function Results() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <div className="lg:col-span-2 space-y-6">
                 <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
-                  <h2 className="text-xl text-gray-900 mb-4">Transcript (Doctor / Patient speech separated)</h2>
+                  <h2 className="text-xl text-gray-900 mb-4">Transcript</h2>
                   {s.transcript ? (
                     <div className="bg-gray-50 rounded-lg p-6 min-h-[24rem] border border-gray-100 text-sm text-gray-700 leading-relaxed whitespace-pre-wrap overflow-auto">
                       {s.transcript}
