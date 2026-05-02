@@ -1,8 +1,8 @@
 import { Navigation } from "../components/Navigation";
 import { useParams, Link } from "react-router";
 
-// Mock patient data
-const patientData = {
+// Mock person data
+const personData = {
   id: "PT-2024-001",
   name: "Margaret Thompson",
   dob: "15/06/1947",
@@ -60,7 +60,7 @@ const visits = [
   },
 ];
 
-export function PatientProfile() {
+export function PersonProfile() {
   const { id } = useParams();
 
   return (
@@ -70,40 +70,40 @@ export function PatientProfile() {
       <div className="max-w-[1440px] mx-auto px-8 py-12">
         {/* Back Button */}
         <Link 
-          to="/patients"
+          to="/persons"
           className="inline-block text-gray-700 mb-6 underline"
         >
-          ← Back to Patient List
+          ← Back to Person List
         </Link>
         
-        {/* Patient Summary Header */}
+        {/* Person Summary Header */}
         <div className="bg-white border-2 border-gray-400 p-6 mb-8">
           <div className="flex items-start">
             <div className="flex-1">
               <div className="flex items-center gap-4 mb-3">
                 <h1 className="text-3xl font-bold text-gray-900">
-                  {patientData.name}
+                  {personData.name}
                 </h1>
                 <div className="inline-block px-3 py-1 border-2 border-gray-900 font-bold text-sm bg-gray-200">
-                  {patientData.currentRisk}
+                  {personData.currentRisk}
                 </div>
               </div>
               <div className="grid grid-cols-4 gap-6 text-sm">
                 <div>
-                  <p className="text-gray-700">Patient ID</p>
-                  <p className="font-bold text-gray-900">{patientData.id}</p>
+                  <p className="text-gray-700">Person ID</p>
+                  <p className="font-bold text-gray-900">{personData.id}</p>
                 </div>
                 <div>
                   <p className="text-gray-700">Date of Birth</p>
-                  <p className="font-bold text-gray-900">{patientData.dob}</p>
+                  <p className="font-bold text-gray-900">{personData.dob}</p>
                 </div>
                 <div>
                   <p className="text-gray-700">Age</p>
-                  <p className="font-bold text-gray-900">{patientData.age} years</p>
+                  <p className="font-bold text-gray-900">{personData.age} years</p>
                 </div>
                 <div>
                   <p className="text-gray-700">Gender</p>
-                  <p className="font-bold text-gray-900">{patientData.gender}</p>
+                  <p className="font-bold text-gray-900">{personData.gender}</p>
                 </div>
               </div>
             </div>

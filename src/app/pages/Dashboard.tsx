@@ -187,7 +187,7 @@ const biomarkers = [
   {
     name: "Mean Length of Utterance (MLU)",
     description:
-      "Measures the average number of words per sentence. Cognitive decline often shortens sentence length as patients struggle to maintain complex grammar and thought structures.",
+      "Measures the average number of words per sentence. Cognitive decline often shortens sentence length as persons struggle to maintain complex grammar and thought structures.",
   },
   {
     name: "Pause Ratio",
@@ -214,7 +214,7 @@ const comparisonRows = [
     moca: "10–15 minutes",
   },
   {
-    feature: "Patient burden",
+    feature: "Person burden",
     biomarker: "None — no extra tests required",
     mmse: "Moderate",
     moca: "Moderate",
@@ -835,7 +835,7 @@ export function Dashboard() {
               Conversational biomarkers are measurable linguistic and acoustic
               patterns extracted from natural speech. Unlike traditional
               assessments, they can be detected passively during routine
-              consultations — with no additional patient burden.
+              consultations — with no additional person burden.
             </p>
           </div>
 

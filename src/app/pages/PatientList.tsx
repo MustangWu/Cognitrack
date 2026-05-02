@@ -2,8 +2,8 @@ import { Navigation } from "../components/Navigation";
 import { useState } from "react";
 import { Link } from "react-router";
 
-// Mock patient data
-const patients = [
+// Mock person data
+const persons = [
   {
     id: "PT-2024-001",
     name: "Margaret Thompson",
@@ -86,24 +86,24 @@ const patients = [
   },
 ];
 
-// Calculate overdue patients (last visit > 90 days ago)
-const overduePatients = patients.filter(p => {
+// Calculate overdue persons (last visit > 90 days ago)
+const overduePersons = persons.filter(p => {
   const daysSinceVisit = Math.floor((new Date().getTime() - new Date(p.lastVisit).getTime()) / (1000 * 60 * 60 * 24));
   return daysSinceVisit > 90;
 });
 
-export function PatientList() {
+export function PersonList() {
   const [searchQuery, setSearchQuery] = useState("");
   const [riskFilter, setRiskFilter] = useState("All");
 
-  const filteredPatients = patients.filter(patient => {
-    const matchesSearch = patient.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         patient.id.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesRisk = riskFilter === "All" || patient.risk === riskFilter;
+  const filteredPersons = persons.filter(person => {
+    const matchesSearch = person.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         person.id.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesRisk = riskFilter === "All" || person.risk === riskFilter;
     return matchesSearch && matchesRisk;
   });
 
-  const flaggedPatients = patients.filter(p => p.flagged);
+  const flaggedPersons = persons.filter(p => p.flagged);
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -113,10 +113,10 @@ export function PatientList() {
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Patient List
+            Person List
           </h1>
           <p className="text-gray-700">
-            Manage and monitor your patients' cognitive health assessments
+            Manage and monitor your persons' cognitive health assessments
           </p>
         </div>
         
@@ -125,10 +125,10 @@ export function PatientList() {
           <div className="bg-white border-l-4 border-gray-900 p-6 border-2 border-gray-400">
             <div className="flex items-center gap-3 mb-2">
               <div className="w-6 h-6 bg-gray-400 border-2 border-gray-500"></div>
-              <h3 className="text-lg font-bold text-gray-900">Flagged Patients</h3>
+              <h3 className="text-lg font-bold text-gray-900">Flagged Persons</h3>
             </div>
-            <div className="text-3xl font-bold text-gray-900 mb-1">{flaggedPatients.length}</div>
-            <p className="text-sm text-gray-700">High-risk patients requiring follow-up</p>
+            <div className="text-3xl font-bold text-gray-900 mb-1">{flaggedPersons.length}</div>
+            <p className="text-sm text-gray-700">High-risk persons requiring follow-up</p>
           </div>
           
           <div className="bg-white border-l-4 border-gray-900 p-6 border-2 border-gray-400">
@@ -136,17 +136,17 @@ export function PatientList() {
               <div className="w-6 h-6 bg-gray-400 border-2 border-gray-500"></div>
               <h3 className="text-lg font-bold text-gray-900">Overdue Recordings</h3>
             </div>
-            <div className="text-3xl font-bold text-gray-900 mb-1">{overduePatients.length}</div>
-            <p className="text-sm text-gray-700">Patients due for reassessment (&gt;90 days)</p>
+            <div className="text-3xl font-bold text-gray-900 mb-1">{overduePersons.length}</div>
+            <p className="text-sm text-gray-700">Persons due for reassessment (&gt;90 days)</p>
           </div>
           
           <div className="bg-white border-l-4 border-gray-900 p-6 border-2 border-gray-400">
             <div className="flex items-center gap-3 mb-2">
               <div className="w-6 h-6 bg-gray-400 border-2 border-gray-500"></div>
-              <h3 className="text-lg font-bold text-gray-900">Total Active Patients</h3>
+              <h3 className="text-lg font-bold text-gray-900">Total Active Persons</h3>
             </div>
-            <div className="text-3xl font-bold text-gray-900 mb-1">{patients.length}</div>
-            <p className="text-sm text-gray-700">Patients under cognitive monitoring</p>
+            <div className="text-3xl font-bold text-gray-900 mb-1">{persons.length}</div>
+            <p className="text-sm text-gray-700">Persons under cognitive monitoring</p>
           </div>
         </div>
         
@@ -156,7 +156,7 @@ export function PatientList() {
             <div className="flex-1 relative">
               <input
                 type="text"
-                placeholder="Search by patient name or ID..."
+                placeholder="Search by person name or ID..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-4 pr-4 py-2.5 border-2 border-gray-400"
@@ -179,14 +179,14 @@ export function PatientList() {
           </div>
         </div>
         
-        {/* Patient Table */}
+        {/* Person Table */}
         <div className="bg-white border-2 border-gray-400 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-gray-100 border-b-2 border-gray-400">
                 <tr>
-                  <th className="text-left py-4 px-6 text-sm font-bold text-gray-900 border-r-2 border-gray-300">Patient</th>
-                  <th className="text-left py-4 px-6 text-sm font-bold text-gray-900 border-r-2 border-gray-300">Patient ID</th>
+                  <th className="text-left py-4 px-6 text-sm font-bold text-gray-900 border-r-2 border-gray-300">Person</th>
+                  <th className="text-left py-4 px-6 text-sm font-bold text-gray-900 border-r-2 border-gray-300">Person ID</th>
                   <th className="text-left py-4 px-6 text-sm font-bold text-gray-900 border-r-2 border-gray-300">Age</th>
                   <th className="text-left py-4 px-6 text-sm font-bold text-gray-900 border-r-2 border-gray-300">Last Visit</th>
                   <th className="text-left py-4 px-6 text-sm font-bold text-gray-900 border-r-2 border-gray-300">Risk Level</th>
@@ -196,20 +196,20 @@ export function PatientList() {
                 </tr>
               </thead>
               <tbody>
-                {filteredPatients.map((patient, index) => (
+                {filteredPersons.map((person, index) => (
                   <tr key={index} className="border-b border-gray-300">
                     <td className="py-4 px-6 border-r border-gray-300">
                       <div className="flex items-center gap-3">
-                        {patient.flagged && (
+                        {person.flagged && (
                           <span className="font-bold text-gray-900">!</span>
                         )}
-                        <span className="font-medium text-gray-900">{patient.name}</span>
+                        <span className="font-medium text-gray-900">{person.name}</span>
                       </div>
                     </td>
-                    <td className="py-4 px-6 text-sm text-gray-700 border-r border-gray-300">{patient.id}</td>
-                    <td className="py-4 px-6 text-sm text-gray-900 border-r border-gray-300">{patient.age}</td>
+                    <td className="py-4 px-6 text-sm text-gray-700 border-r border-gray-300">{person.id}</td>
+                    <td className="py-4 px-6 text-sm text-gray-900 border-r border-gray-300">{person.age}</td>
                     <td className="py-4 px-6 text-sm text-gray-900 border-r border-gray-300">
-                      {new Date(patient.lastVisit).toLocaleDateString('en-AU', { 
+                      {new Date(person.lastVisit).toLocaleDateString('en-AU', { 
                         day: 'numeric', 
                         month: 'short', 
                         year: 'numeric' 
@@ -217,18 +217,18 @@ export function PatientList() {
                     </td>
                     <td className="py-4 px-6 border-r border-gray-300">
                       <span className="inline-block px-3 py-1 border border-gray-900 text-xs font-bold bg-gray-100">
-                        {patient.risk}
+                        {person.risk}
                       </span>
                     </td>
                     <td className="py-4 px-6 border-r border-gray-300">
-                      {patient.trend === "down" && <span>↓</span>}
-                      {patient.trend === "up" && <span>↑</span>}
-                      {patient.trend === "stable" && <span>—</span>}
+                      {person.trend === "down" && <span>↓</span>}
+                      {person.trend === "up" && <span>↑</span>}
+                      {person.trend === "stable" && <span>—</span>}
                     </td>
-                    <td className="py-4 px-6 text-sm text-gray-900 font-bold border-r border-gray-300">{patient.mlu}</td>
+                    <td className="py-4 px-6 text-sm text-gray-900 font-bold border-r border-gray-300">{person.mlu}</td>
                     <td className="py-4 px-6">
                       <Link 
-                        to={`/patient/${patient.id}`}
+                        to={`/person/${person.id}`}
                         className="text-gray-900 underline font-bold text-sm"
                       >
                         View Profile
@@ -241,9 +241,9 @@ export function PatientList() {
           </div>
         </div>
         
-        {filteredPatients.length === 0 && (
+        {filteredPersons.length === 0 && (
           <div className="text-center py-12 text-gray-700">
-            No patients found matching your search criteria
+            No persons found matching your search criteria
           </div>
         )}
       </div>

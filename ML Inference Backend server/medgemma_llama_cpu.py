@@ -15,8 +15,8 @@ Pipeline:
      and XAI explanatory summaries for each biomarker.
 
 NOTE: trend_direction is NOT computed here. It requires comparing this recording
-against previous recordings for the same patient — that logic belongs in the
-backend (query biomarker_analysis history for the patient, then compute trend).
+against previous recordings for the same person — that logic belongs in the
+backend (query biomarker_analysis history for the person, then compute trend).
 
 POST /chat
   Request:  { "prompt": "<timestamped transcript>", "max_new_tokens": 600 }

@@ -96,7 +96,7 @@ function exportToPDF(s: AnalysisResult) {
   doc.setFontSize(10);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(80, 80, 80);
-  doc.text(`Person: ${s.patientName} (${s.patientId})`, margin, y);
+  doc.text(`Person: ${s.personName} (${s.personId})`, margin, y);
   y += 5;
   doc.text(`Recording Date: ${formatDate(s.recordingDate)}`, margin, y);
   y += 5;
@@ -211,7 +211,7 @@ function exportToPDF(s: AnalysisResult) {
     doc.text(`Page ${i} of ${totalPages}`, pageWidth - margin, doc.internal.pageSize.getHeight() - 4, { align: "right" });
   }
 
-  const safeName = s.patientName.replace(/\s+/g, "_");
+  const safeName = s.personName.replace(/\s+/g, "_");
   doc.save(`NeuroTechCare_Report_${safeName}.pdf`);
 }
 
@@ -247,7 +247,7 @@ function EmptyState() {
       </div>
       <h2 className="text-lg text-gray-700 mb-2">No analysis results yet</h2>
       <p className="text-sm text-gray-500 max-w-xs mb-6">
-        Upload a patient recording to generate speech biomarker analysis and view results here.
+        Upload a person recording to generate speech biomarker analysis and view results here.
       </p>
       <a
         href="/upload"
@@ -278,7 +278,7 @@ export function Results() {
             <div className="mb-8">
               <h1 className="text-3xl text-gray-900 mb-2">Analysis Results</h1>
               <p className="text-gray-600 leading-relaxed">
-                Person: {s.patientName} ({s.patientId})
+                Person: {s.personName} ({s.personId})
                 <br />
                 Recording Date: {formatDate(s.recordingDate)}
               </p>

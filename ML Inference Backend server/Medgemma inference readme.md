@@ -18,7 +18,7 @@ The current EC2 public DNS is set via the `EC2_ENDPOINT` environment variable in
 EC2_ENDPOINT=http://ec2-52-206-128-95.compute-1.amazonaws.com:8000/chat
 ```
 
-> **Security:** Port 8000 on the EC2 security group should be restricted to your backend server's IP (not `0.0.0.0/0`). The connection is plain HTTP — do not send patient data over the public internet without a VPN or HTTPS reverse proxy in front.
+> **Security:** Port 8000 on the EC2 security group should be restricted to your backend server's IP (not `0.0.0.0/0`). The connection is plain HTTP — do not send person data over the public internet without a VPN or HTTPS reverse proxy in front.
 
 ---
 
@@ -74,7 +74,7 @@ The timestamps are used by Stage 1 (rule-based extractor) to compute `pause_rati
   "biomarker_summaries": {
     "mlu_score": {
       "value": 7.43,
-      "summary": "The patient produced an average of 7.43 words per utterance, within the normal range of 7–12, suggesting preserved basic sentence construction."
+      "summary": "The person produced an average of 7.43 words per utterance, within the normal range of 7–12, suggesting preserved basic sentence construction."
     },
     "pause_ratio": {
       "value": 0.182,
@@ -82,7 +82,7 @@ The timestamps are used by Stage 1 (rule-based extractor) to compute `pause_rati
     },
     "type_token_ratio": {
       "value": 0.614,
-      "summary": "A TTR of 0.614 indicates healthy lexical diversity; the patient used varied vocabulary without repeating the same words excessively."
+      "summary": "A TTR of 0.614 indicates healthy lexical diversity; the person used varied vocabulary without repeating the same words excessively."
     },
     "filler_word_count": {
       "value": 4,
@@ -124,14 +124,14 @@ The timestamps are used by Stage 1 (rule-based extractor) to compute `pause_rati
 `trend_direction` is **not returned by this endpoint**. A single recording has no prior context to compare against. Trend computation must happen in your Node.js backend after inserting the new row:
 
 ```js
-async function computeTrendDirection(client, patientId, newConfidenceScore, newRiskLevel) {
+async function computeTrendDirection(client, personId, newConfidenceScore, newRiskLevel) {
   const { rows } = await client.query(
     `SELECT confidence_score, dementia_risk_level
      FROM biomarker_analysis
-     WHERE patient_id = $1
+     WHERE person_id = $1
      ORDER BY created_at DESC
      LIMIT 1`,
-    [patientId]
+    [personId]
   );
 
   if (rows.length === 0) return "stable";
