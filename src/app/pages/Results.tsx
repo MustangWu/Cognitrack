@@ -329,7 +329,7 @@ export function Results() {
                     className="border border-gray-300 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-2"
                   >
                     <UploadCloud className="w-5 h-5" />
-                    New Recording
+                    Clear Session
                   </button>
                 </div>
               </div>
