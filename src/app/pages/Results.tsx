@@ -2,6 +2,7 @@ import { Navigation } from "../components/Navigation";
 import { Download, FileText, UploadCloud, X, AlertCircle } from "lucide-react";
 import { useNavigate } from "react-router";
 import jsPDF from "jspdf";
+import { toast } from "sonner";
 import { useSession, type AnalysisResult } from "../context/SessionContext";
 
 type BiomarkerKey = "mlu_score" | "pause_ratio" | "type_token_ratio" | "filler_word_count" | "syntactic_complexity" | "overall_risk";
@@ -260,7 +261,7 @@ function EmptyState() {
 }
 
 export function Results() {
-  const { sessionData, wasExpired, dismissExpiry } = useSession();
+  const { sessionData, clearSession, wasExpired, dismissExpiry } = useSession();
   const navigate = useNavigate();
   const s = sessionData;
 
@@ -320,7 +321,11 @@ export function Results() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => navigate("/upload")}
+                    onClick={() => {
+                      clearSession();
+                      toast.success("Session cleared. Ready for a new recording.");
+                      navigate("/upload");
+                    }}
                     className="border border-gray-300 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-2"
                   >
                     <UploadCloud className="w-5 h-5" />
