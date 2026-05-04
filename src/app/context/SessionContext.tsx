@@ -1,5 +1,12 @@
 import { createContext, useContext, useState, type ReactNode } from "react";
 
+function generateId(): string {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  return Date.now().toString(36) + Math.random().toString(36).slice(2);
+}
+
 const SESSION_DATA_KEY = "cognitrack_session_data";
 const SESSION_ID_KEY = "cognitrack_session_id";
 const LAST_SESSION_KEY = "cognitrack_last_session";
@@ -38,7 +45,7 @@ function initSession(): { data: AnalysisResult | null; wasExpired: boolean } {
   const wasExpired = !sessionId && !!lastSession;
 
   if (!sessionId) {
-    const newId = crypto.randomUUID();
+    const newId = generateId();
     sessionStorage.setItem(SESSION_ID_KEY, newId);
     localStorage.setItem(LAST_SESSION_KEY, newId);
     return { data: null, wasExpired };
@@ -64,7 +71,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     sessionStorage.removeItem(SESSION_DATA_KEY);
     sessionStorage.removeItem(SESSION_ID_KEY);
     localStorage.removeItem(LAST_SESSION_KEY);
-    const newId = crypto.randomUUID();
+    const newId = generateId();
     sessionStorage.setItem(SESSION_ID_KEY, newId);
     localStorage.setItem(LAST_SESSION_KEY, newId);
     setSessionDataState(null);
