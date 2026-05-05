@@ -13,9 +13,13 @@ export function Landing() {
         <div className="bg-white rounded-lg p-12 mb-12 flex items-center justify-between">
           <div className="max-w-xl">
             <h1 className="text-4xl text-gray-900 mb-4">
-              AI-Powered Speech Biomarkers for Early Dementia Detection
+              Listen Closer: Understand the Changes Before They Become Challenges
             </h1>
+            <h2 className="text-2xl font-semibold text-gray-800 mb-4">
+              Early Dementia Detection Through the Power of Voice
+            </h2>
             <p className="text-gray-600 mb-8">
+              LLM-Powered Speech Biomarkers for Early Dementia Detection
               Empower your clinical practice with cutting-edge speech analysis technology.
               Detect cognitive decline, make confident referrals, and improve person outcomes.
             </p>
