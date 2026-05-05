@@ -16,7 +16,7 @@ export function Landing() {
               Listen Closer: Understand the Changes Before They Become Challenges
             </h1>
             <h2 className="text-2xl font-semibold text-gray-800 mb-4">
-              Early Dementia Detection Through the Power of Voice”
+              Early Dementia Detection Through the Power of Voice
             </h2>
             <p className="text-gray-600 mb-8">
               LLM-Powered Speech Biomarkers for Early Dementia Detection
