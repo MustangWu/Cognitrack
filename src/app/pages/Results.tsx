@@ -97,7 +97,7 @@ function exportToPDF(s: AnalysisResult) {
   doc.setFontSize(10);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(80, 80, 80);
-  doc.text(`Person: ${s.personName} (${s.personId})`, margin, y);
+  doc.text(`Care Recipient: ${s.personName} (${s.personId})`, margin, y);
   y += 5;
   doc.text(`Recording Date: ${formatDate(s.recordingDate)}`, margin, y);
   y += 5;
@@ -248,7 +248,7 @@ function EmptyState() {
       </div>
       <h2 className="text-lg text-gray-700 mb-2">No analysis results yet</h2>
       <p className="text-sm text-gray-500 max-w-xs mb-6">
-        Upload a person recording to generate speech biomarker analysis and view results here.
+        Upload a care recipient recording to generate speech biomarker analysis and view results here.
       </p>
       <a
         href="/upload"
@@ -279,7 +279,7 @@ export function Results() {
             <div className="mb-8">
               <h1 className="text-3xl text-gray-900 mb-2">Analysis Results</h1>
               <p className="text-gray-600 leading-relaxed">
-                Person: {s.personName} ({s.personId})
+                Care Recipient: {s.personName} ({s.personId})
                 <br />
                 Recording Date: {formatDate(s.recordingDate)}
               </p>

@@ -113,10 +113,10 @@ export function PersonList() {
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Person List
+            Care Recipient List
           </h1>
           <p className="text-gray-700">
-            Manage and monitor your persons' cognitive health assessments
+            Manage and monitor your care recipients' cognitive health assessments
           </p>
         </div>
         
@@ -125,10 +125,10 @@ export function PersonList() {
           <div className="bg-white border-l-4 border-gray-900 p-6 border-2 border-gray-400">
             <div className="flex items-center gap-3 mb-2">
               <div className="w-6 h-6 bg-gray-400 border-2 border-gray-500"></div>
-              <h3 className="text-lg font-bold text-gray-900">Flagged Persons</h3>
+              <h3 className="text-lg font-bold text-gray-900">Flagged Care Recipients</h3>
             </div>
             <div className="text-3xl font-bold text-gray-900 mb-1">{flaggedPersons.length}</div>
-            <p className="text-sm text-gray-700">High-risk persons requiring follow-up</p>
+            <p className="text-sm text-gray-700">High-risk care recipients requiring follow-up</p>
           </div>
           
           <div className="bg-white border-l-4 border-gray-900 p-6 border-2 border-gray-400">
@@ -137,16 +137,16 @@ export function PersonList() {
               <h3 className="text-lg font-bold text-gray-900">Overdue Recordings</h3>
             </div>
             <div className="text-3xl font-bold text-gray-900 mb-1">{overduePersons.length}</div>
-            <p className="text-sm text-gray-700">Persons due for reassessment (&gt;90 days)</p>
+            <p className="text-sm text-gray-700">Care recipients due for reassessment (&gt;90 days)</p>
           </div>
           
           <div className="bg-white border-l-4 border-gray-900 p-6 border-2 border-gray-400">
             <div className="flex items-center gap-3 mb-2">
               <div className="w-6 h-6 bg-gray-400 border-2 border-gray-500"></div>
-              <h3 className="text-lg font-bold text-gray-900">Total Active Persons</h3>
+              <h3 className="text-lg font-bold text-gray-900">Total Active Care Recipients</h3>
             </div>
             <div className="text-3xl font-bold text-gray-900 mb-1">{persons.length}</div>
-            <p className="text-sm text-gray-700">Persons under cognitive monitoring</p>
+            <p className="text-sm text-gray-700">Care recipients under cognitive monitoring</p>
           </div>
         </div>
         
@@ -156,7 +156,7 @@ export function PersonList() {
             <div className="flex-1 relative">
               <input
                 type="text"
-                placeholder="Search by person name or ID..."
+                placeholder="Search by care recipient name or ID..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-4 pr-4 py-2.5 border-2 border-gray-400"
@@ -185,8 +185,8 @@ export function PersonList() {
             <table className="w-full">
               <thead className="bg-gray-100 border-b-2 border-gray-400">
                 <tr>
-                  <th className="text-left py-4 px-6 text-sm font-bold text-gray-900 border-r-2 border-gray-300">Person</th>
-                  <th className="text-left py-4 px-6 text-sm font-bold text-gray-900 border-r-2 border-gray-300">Person ID</th>
+                  <th className="text-left py-4 px-6 text-sm font-bold text-gray-900 border-r-2 border-gray-300">Care Recipient</th>
+                  <th className="text-left py-4 px-6 text-sm font-bold text-gray-900 border-r-2 border-gray-300">Care Recipient ID</th>
                   <th className="text-left py-4 px-6 text-sm font-bold text-gray-900 border-r-2 border-gray-300">Age</th>
                   <th className="text-left py-4 px-6 text-sm font-bold text-gray-900 border-r-2 border-gray-300">Last Visit</th>
                   <th className="text-left py-4 px-6 text-sm font-bold text-gray-900 border-r-2 border-gray-300">Risk Level</th>
@@ -243,7 +243,7 @@ export function PersonList() {
         
         {filteredPersons.length === 0 && (
           <div className="text-center py-12 text-gray-700">
-            No persons found matching your search criteria
+            No care recipients found matching your search criteria
           </div>
         )}
       </div>

@@ -73,7 +73,7 @@ export function PersonProfile() {
           to="/persons"
           className="inline-block text-gray-700 mb-6 underline"
         >
-          ← Back to Person List
+          ← Back to Care Recipient List
         </Link>
         
         {/* Person Summary Header */}
@@ -90,7 +90,7 @@ export function PersonProfile() {
               </div>
               <div className="grid grid-cols-4 gap-6 text-sm">
                 <div>
-                  <p className="text-gray-700">Person ID</p>
+                  <p className="text-gray-700">Care Recipient ID</p>
                   <p className="font-bold text-gray-900">{personData.id}</p>
                 </div>
                 <div>

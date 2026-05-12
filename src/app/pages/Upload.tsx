@@ -144,13 +144,13 @@ export function Upload() {
 
   const validate = (): FormErrors => {
     const next: FormErrors = {};
-    if (!personId.trim()) next.personId = "Person ID is required.";
-    else if (!/^[A-Za-z0-9]+$/.test(personId.trim())) next.personId = "Person ID must contain only letters and numbers.";
+    if (!personId.trim()) next.personId = "Care Recipient ID is required.";
+    else if (!/^[A-Za-z0-9]+$/.test(personId.trim())) next.personId = "Care Recipient ID must contain only letters and numbers.";
     if (!recordingDate) next.recordingDate = "Recording date is required.";
     if (!file) next.file = "Please select an audio file to upload.";
-    if (!consentChecked) next.consent = "You must confirm person consent before submitting.";
+    if (!consentChecked) next.consent = "You must confirm care recipient consent before submitting.";
     if (personStatus === "not-found") {
-      if (!newPersonName.trim()) next.newPersonName = "Person name is required.";
+      if (!newPersonName.trim()) next.newPersonName = "Care recipient name is required.";
       if (!newPersonAge.trim()) next.newPersonAge = "Age is required.";
       else if (isNaN(Number(newPersonAge)) || Number(newPersonAge) < 1 || Number(newPersonAge) > 130)
         next.newPersonAge = "Please enter a valid age.";
@@ -181,7 +181,7 @@ export function Upload() {
         });
         if (!createRes.ok) {
           const err = await createRes.json();
-          setErrors((prev) => ({ ...prev, personId: err.error || "Failed to create person profile." }));
+          setErrors((prev) => ({ ...prev, personId: err.error || "Failed to create care recipient profile." }));
           setIsSubmitting(false);
           return;
         }
@@ -231,7 +231,7 @@ export function Upload() {
       <div className="max-w-3xl mx-auto px-6 py-12">
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl text-gray-900 mb-2">Upload Person Recording</h1>
+          <h1 className="text-3xl text-gray-900 mb-2">Upload Care Recipient Recording</h1>
           <p className="text-gray-600">
             Upload a consultation audio file for speech biomarker analysis
           </p>
@@ -244,7 +244,7 @@ export function Upload() {
           <div className="grid grid-cols-2 gap-6 mb-6">
             <div>
               <label className="block text-sm mb-2">
-                Person ID <span className="text-red-500">*</span>
+                Care Recipient ID <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
@@ -289,13 +289,13 @@ export function Upload() {
           {personStatus === "searching" && (
             <div className="mb-6 px-4 py-3 rounded-lg border border-blue-200 bg-blue-50 text-blue-800 text-sm flex items-center gap-2">
               <span className="inline-block w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-              Searching for person…
+              Searching for care recipient…
             </div>
           )}
 
           {personStatus === "found" && existingPerson && (
             <div className="mb-6 px-4 py-4 rounded-lg border border-green-200 bg-green-50">
-              <p className="text-sm font-semibold text-green-800 mb-1">Person found</p>
+              <p className="text-sm font-semibold text-green-800 mb-1">Care recipient found</p>
               <p className="text-sm text-green-700">
                 {existingPerson.name}&nbsp;·&nbsp;Age {existingPerson.age}&nbsp;·&nbsp;{existingPerson.gender}
                 {existingPerson.risk_level && (
@@ -311,12 +311,12 @@ export function Upload() {
           {personStatus === "not-found" && (
             <div className="mb-6">
               <div className="px-4 py-3 rounded-lg border border-amber-200 bg-amber-50 mb-4">
-                <p className="text-sm font-semibold text-amber-800 mb-0.5">No person found with this ID</p>
-                <p className="text-xs text-amber-700">Fill in the details below to create a new person profile.</p>
+                <p className="text-sm font-semibold text-amber-800 mb-0.5">No care recipient found with this ID</p>
+                <p className="text-xs text-amber-700">Fill in the details below to create a new care recipient profile.</p>
               </div>
 
               <div className="rounded-lg border border-gray-200 bg-gray-50 p-5">
-                <p className="text-sm font-semibold text-gray-800 mb-4">New Person Profile</p>
+                <p className="text-sm font-semibold text-gray-800 mb-4">New Care Recipient Profile</p>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="col-span-2">
                     <label className="block text-sm mb-1">Full Name <span className="text-red-500">*</span></label>
@@ -438,7 +438,7 @@ export function Upload() {
                 className="mt-1 w-4 h-4"
               />
               <span className="text-sm text-gray-900">
-                I confirm that informed consent has been obtained from the person for this
+                I confirm that informed consent has been obtained from the care recipient for this
                 recording to be used for clinical assessment purposes.{" "}
                 <span className="text-red-500">*</span>
                 <div className="text-xs text-gray-500 mt-1">
