@@ -5,6 +5,7 @@ import { Upload } from "./pages/Upload";
 import { Results } from "./pages/Results";
 import { PersonProfile } from "./pages/PersonProfile";
 import { PersonList } from "./pages/PersonList";
+import { BrainHealthFlashcards } from "./pages/BrainHealthFlashcards";
 
 export const router = createBrowserRouter([
   {
@@ -30,5 +31,9 @@ export const router = createBrowserRouter([
   {
     path: "/persons",
     Component: PersonList,
+  },
+  {
+    path: "/flashcards",
+    Component: BrainHealthFlashcards,
   },
 ]);
