@@ -1,26 +1,14 @@
 import { Navigation } from "../components/Navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
-import { Check } from "lucide-react";
+import { Check, Plus } from "lucide-react";
 import { useSession } from "../context/SessionContext";
 
 const MAX_FILE_SIZE_MB = 100;
 const ACCEPTED_FORMATS = [".mp3", ".wav", ".m4a"];
 const ACCEPTED_MIME = ["audio/mpeg", "audio/wav", "audio/x-wav", "audio/mp4", "audio/m4a", "audio/x-m4a"];
 
-interface FormErrors {
-  personId?: string;
-  recordingDate?: string;
-  file?: string;
-  consent?: string;
-  newPersonName?: string;
-  newPersonAge?: string;
-  newPersonGender?: string;
-}
-
-type PersonStatus = "idle" | "searching" | "found" | "not-found";
-
-interface PersonInfo {
+interface PersonOption {
   person_id: string;
   name: string;
   age: number;
@@ -29,16 +17,22 @@ interface PersonInfo {
   last_visit: string | null;
 }
 
+interface FormErrors {
+  personId?: string;
+  uploadDate?: string;
+  file?: string;
+  consent?: string;
+  newPersonName?: string;
+  newPersonAge?: string;
+  newPersonGender?: string;
+}
+
 function validateFile(file: File): string | undefined {
   const ext = "." + file.name.split(".").pop()?.toLowerCase();
   const validExt = ACCEPTED_FORMATS.includes(ext);
   const validMime = ACCEPTED_MIME.some((m) => file.type.startsWith(m.split("/")[0]) && file.type.includes(m.split("/")[1])) || file.type.startsWith("audio/");
-  if (!validExt && !validMime) {
-    return `Invalid file format. Please upload an MP3, WAV, or M4A file.`;
-  }
-  if (file.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
-    return `File is too large (${(file.size / 1024 / 1024).toFixed(1)} MB). Maximum allowed size is ${MAX_FILE_SIZE_MB} MB.`;
-  }
+  if (!validExt && !validMime) return `Invalid file format. Please upload an MP3, WAV, or M4A file.`;
+  if (file.size > MAX_FILE_SIZE_MB * 1024 * 1024) return `File is too large (${(file.size / 1024 / 1024).toFixed(1)} MB). Maximum allowed size is ${MAX_FILE_SIZE_MB} MB.`;
   return undefined;
 }
 
@@ -48,22 +42,32 @@ function formatFileSize(bytes: number): string {
 }
 
 export function Upload() {
-  const [personId, setPersonId] = useState("");
-  const [recordingDate, setRecordingDate] = useState("");
+  const [persons, setPersons] = useState<PersonOption[]>([]);
+  const [personsLoading, setPersonsLoading] = useState(true);
+
+  const [selectedPersonId, setSelectedPersonId] = useState("");
+  const [showAddNew, setShowAddNew] = useState(false);
+  const [newPersonName, setNewPersonName] = useState("");
+  const [newPersonAge, setNewPersonAge] = useState("");
+  const [newPersonGender, setNewPersonGender] = useState("");
+
+  const [uploadDate, setUploadDate] = useState("");
   const [consentChecked, setConsentChecked] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const [personStatus, setPersonStatus] = useState<PersonStatus>("idle");
-  const [existingPerson, setExistingPerson] = useState<PersonInfo | null>(null);
-  const [newPersonName, setNewPersonName] = useState("");
-  const [newPersonAge, setNewPersonAge] = useState("");
-  const [newPersonGender, setNewPersonGender] = useState("");
-
   const navigate = useNavigate();
   const { setSessionData } = useSession();
+
+  useEffect(() => {
+    fetch("/api/persons")
+      .then((r) => r.json())
+      .then((data) => setPersons(Array.isArray(data) ? data : []))
+      .catch(() => setPersons([]))
+      .finally(() => setPersonsLoading(false));
+  }, []);
 
   const loadDemo = () => {
     setSessionData({
@@ -92,26 +96,6 @@ export function Upload() {
     navigate("/results");
   };
 
-  const lookupPerson = async (id: string) => {
-    const trimmed = id.trim();
-    if (!trimmed || !/^[A-Za-z0-9]+$/.test(trimmed)) return;
-    setPersonStatus("searching");
-    setExistingPerson(null);
-    try {
-      const res = await fetch(`/api/persons/${encodeURIComponent(trimmed)}`);
-      if (res.ok) {
-        setExistingPerson(await res.json());
-        setPersonStatus("found");
-      } else if (res.status === 404) {
-        setPersonStatus("not-found");
-      } else {
-        setPersonStatus("idle");
-      }
-    } catch {
-      setPersonStatus("idle");
-    }
-  };
-
   const handleFileChange = (incoming: File) => {
     const error = validateFile(incoming);
     if (error) {
@@ -123,20 +107,14 @@ export function Upload() {
     }
   };
 
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(true);
-  };
-
+  const handleDragOver = (e: React.DragEvent) => { e.preventDefault(); setIsDragging(true); };
   const handleDragLeave = () => setIsDragging(false);
-
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
     const dropped = e.dataTransfer.files[0];
     if (dropped) handleFileChange(dropped);
   };
-
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = e.target.files?.[0];
     if (selected) handleFileChange(selected);
@@ -144,52 +122,57 @@ export function Upload() {
 
   const validate = (): FormErrors => {
     const next: FormErrors = {};
-    if (!personId.trim()) next.personId = "Person ID is required.";
-    else if (!/^[A-Za-z0-9]+$/.test(personId.trim())) next.personId = "Person ID must contain only letters and numbers.";
-    if (!recordingDate) next.recordingDate = "Recording date is required.";
-    if (!file) next.file = "Please select an audio file to upload.";
-    if (!consentChecked) next.consent = "You must confirm person consent before submitting.";
-    if (personStatus === "not-found") {
-      if (!newPersonName.trim()) next.newPersonName = "Person name is required.";
+    if (showAddNew) {
+      if (!newPersonName.trim()) next.newPersonName = "Care recipient name is required.";
       if (!newPersonAge.trim()) next.newPersonAge = "Age is required.";
       else if (isNaN(Number(newPersonAge)) || Number(newPersonAge) < 1 || Number(newPersonAge) > 130)
         next.newPersonAge = "Please enter a valid age.";
       if (!newPersonGender) next.newPersonGender = "Gender is required.";
+    } else {
+      if (!selectedPersonId) next.personId = "Please select a care recipient.";
     }
+    if (!uploadDate) next.uploadDate = "Upload date is required.";
+    if (!file) next.file = "Please select an audio file to upload.";
+    if (!consentChecked) next.consent = "You must confirm care recipient consent before submitting.";
     return next;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const next = validate();
-    if (Object.keys(next).length > 0) {
-      setErrors(next);
-      return;
-    }
+    if (Object.keys(next).length > 0) { setErrors(next); return; }
     setIsSubmitting(true);
+
+    const resolvedPersonId = showAddNew
+      ? `PT-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 900) + 100)}`
+      : selectedPersonId;
+    const resolvedPersonName = showAddNew
+      ? newPersonName.trim()
+      : persons.find((p) => p.person_id === selectedPersonId)?.name ?? selectedPersonId;
+
     try {
-      if (personStatus === "not-found") {
+      if (showAddNew) {
         const createRes = await fetch("/api/persons", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            person_id: personId.trim(),
-            name: newPersonName.trim(),
+            person_id: resolvedPersonId,
+            name: resolvedPersonName,
             age: Number(newPersonAge),
             gender: newPersonGender,
           }),
         });
         if (!createRes.ok) {
           const err = await createRes.json();
-          setErrors((prev) => ({ ...prev, personId: err.error || "Failed to create person profile." }));
+          setErrors((prev) => ({ ...prev, newPersonId: err.error || "Failed to create care recipient profile." }));
           setIsSubmitting(false);
           return;
         }
       }
 
       const formData = new FormData();
-      formData.append("person_id", personId.trim());
-      formData.append("recording_date", recordingDate);
+      formData.append("person_id", resolvedPersonId);
+      formData.append("recording_date", uploadDate);
       formData.append("audio", file!);
 
       const uploadRes = await fetch("/api/recordings", { method: "POST", body: formData });
@@ -203,9 +186,9 @@ export function Upload() {
       const b = result.biomarkers ?? {};
       const r = result.risk ?? {};
       setSessionData({
-        personId: personId.trim(),
-        personName: existingPerson?.name ?? newPersonName.trim(),
-        recordingDate,
+        personId: resolvedPersonId,
+        personName: resolvedPersonName,
+        recordingDate: uploadDate,
         transcript: result.transcript ?? null,
         mlu_score: b.mlu_score,
         pause_ratio: b.pause_ratio,
@@ -231,145 +214,131 @@ export function Upload() {
       <div className="max-w-3xl mx-auto px-6 py-12">
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl text-gray-900 mb-2">Upload Person Recording</h1>
+          <h1 className="text-3xl text-gray-900 mb-2">Upload Care Recipient Recording</h1>
           <p className="text-gray-600">
-            Upload a consultation audio file for speech biomarker analysis
+            Upload a  audio file for speech biomarker analysis
           </p>
         </div>
 
         {/* Form */}
         <form onSubmit={handleSubmit} noValidate className="bg-white rounded-lg p-8">
 
-          {/* Person ID + Recording Date */}
-          <div className="grid grid-cols-2 gap-6 mb-6">
-            <div>
-              <label className="block text-sm mb-2">
-                Person ID <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                value={personId}
-                onChange={(e) => {
-                  const val = e.target.value.replace(/[^A-Za-z0-9]/g, "");
-                  setPersonId(val);
-                  setPersonStatus("idle");
-                  setExistingPerson(null);
-                  if (val.trim()) setErrors((prev) => ({ ...prev, personId: undefined }));
-                }}
-                onBlur={() => lookupPerson(personId)}
-                placeholder="e.g., PT2024001"
-                className={`w-full px-4 py-3 border rounded-lg ${errors.personId ? "border-red-500 bg-red-50" : "border-gray-300"}`}
-              />
-              {errors.personId && (
-                <p className="mt-1.5 text-xs text-red-600">{errors.personId}</p>
-              )}
-            </div>
+          {/* Select Care Recipient */}
+          <div className="mb-6">
+            <label className="block text-sm mb-2">
+              Select Care Recipient <span className="text-red-500">*</span>
+            </label>
+            <select
+              value={selectedPersonId}
+              disabled={showAddNew || personsLoading}
+              onChange={(e) => {
+                setSelectedPersonId(e.target.value);
+                if (e.target.value) setErrors((prev) => ({ ...prev, personId: undefined }));
+              }}
+              className={`w-full px-4 py-3 border rounded-lg bg-white ${
+                showAddNew || personsLoading ? "opacity-40 cursor-not-allowed border-gray-200" :
+                errors.personId ? "border-red-500 bg-red-50" : "border-gray-300"
+              }`}
+            >
+              <option value="">{personsLoading ? "Loading…" : ""}</option>
+              {persons.map((p) => (
+                <option key={p.person_id} value={p.person_id}>{p.name}</option>
+              ))}
+            </select>
+            {errors.personId && !showAddNew && (
+              <p className="mt-1.5 text-xs text-red-600">{errors.personId}</p>
+            )}
 
-            <div>
-              <label className="block text-sm mb-2">
-                Recording Date <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="date"
-                value={recordingDate}
-                max={new Date().toISOString().split("T")[0]}
-                onChange={(e) => {
-                  setRecordingDate(e.target.value);
-                  if (e.target.value) setErrors((prev) => ({ ...prev, recordingDate: undefined }));
-                }}
-                className={`w-full px-4 py-3 border rounded-lg ${errors.recordingDate ? "border-red-500 bg-red-50" : "border-gray-300"}`}
-              />
-              {errors.recordingDate && (
-                <p className="mt-1.5 text-xs text-red-600">{errors.recordingDate}</p>
-              )}
-            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setShowAddNew(!showAddNew);
+                setSelectedPersonId("");
+                setErrors((prev) => ({ ...prev, personId: undefined }));
+              }}
+              className="mt-2 flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800 transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              Add New Care Recipient
+            </button>
           </div>
 
-          {/* Person lookup status */}
-          {personStatus === "searching" && (
-            <div className="mb-6 px-4 py-3 rounded-lg border border-blue-200 bg-blue-50 text-blue-800 text-sm flex items-center gap-2">
-              <span className="inline-block w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-              Searching for person…
-            </div>
-          )}
-
-          {personStatus === "found" && existingPerson && (
-            <div className="mb-6 px-4 py-4 rounded-lg border border-green-200 bg-green-50">
-              <p className="text-sm font-semibold text-green-800 mb-1">Person found</p>
-              <p className="text-sm text-green-700">
-                {existingPerson.name}&nbsp;·&nbsp;Age {existingPerson.age}&nbsp;·&nbsp;{existingPerson.gender}
-                {existingPerson.risk_level && (
-                  <>&nbsp;·&nbsp;Risk: <span className="font-semibold">{existingPerson.risk_level}</span></>
-                )}
-                {existingPerson.last_visit && (
-                  <>&nbsp;·&nbsp;Last visit: {new Date(existingPerson.last_visit).toLocaleDateString("en-AU")}</>
-                )}
-              </p>
-            </div>
-          )}
-
-          {personStatus === "not-found" && (
-            <div className="mb-6">
-              <div className="px-4 py-3 rounded-lg border border-amber-200 bg-amber-50 mb-4">
-                <p className="text-sm font-semibold text-amber-800 mb-0.5">No person found with this ID</p>
-                <p className="text-xs text-amber-700">Fill in the details below to create a new person profile.</p>
-              </div>
-
-              <div className="rounded-lg border border-gray-200 bg-gray-50 p-5">
-                <p className="text-sm font-semibold text-gray-800 mb-4">New Person Profile</p>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="col-span-2">
-                    <label className="block text-sm mb-1">Full Name <span className="text-red-500">*</span></label>
-                    <input
-                      type="text"
-                      value={newPersonName}
-                      onChange={(e) => {
-                        setNewPersonName(e.target.value);
-                        if (e.target.value.trim()) setErrors((prev) => ({ ...prev, newPersonName: undefined }));
-                      }}
-                      placeholder="e.g., Margaret Thompson"
-                      className={`w-full px-4 py-2.5 border rounded-lg bg-white ${errors.newPersonName ? "border-red-400 bg-red-50" : "border-gray-300"}`}
-                    />
-                    {errors.newPersonName && <p className="mt-1 text-xs text-red-600">{errors.newPersonName}</p>}
-                  </div>
-                  <div>
-                    <label className="block text-sm mb-1">Age <span className="text-red-500">*</span></label>
-                    <input
-                      type="number"
-                      value={newPersonAge}
-                      min={1}
-                      max={130}
-                      onChange={(e) => {
-                        setNewPersonAge(e.target.value);
-                        if (e.target.value) setErrors((prev) => ({ ...prev, newPersonAge: undefined }));
-                      }}
-                      placeholder="e.g., 72"
-                      className={`w-full px-4 py-2.5 border rounded-lg bg-white ${errors.newPersonAge ? "border-red-400 bg-red-50" : "border-gray-300"}`}
-                    />
-                    {errors.newPersonAge && <p className="mt-1 text-xs text-red-600">{errors.newPersonAge}</p>}
-                  </div>
-                  <div>
-                    <label className="block text-sm mb-1">Gender <span className="text-red-500">*</span></label>
-                    <select
-                      value={newPersonGender}
-                      onChange={(e) => {
-                        setNewPersonGender(e.target.value);
-                        if (e.target.value) setErrors((prev) => ({ ...prev, newPersonGender: undefined }));
-                      }}
-                      className={`w-full px-4 py-2.5 border rounded-lg bg-white ${errors.newPersonGender ? "border-red-400 bg-red-50" : "border-gray-300"}`}
-                    >
-                      <option value="">Select gender</option>
-                      <option value="Male">Male</option>
-                      <option value="Female">Female</option>
-                      <option value="Other">Other</option>
-                      <option value="Prefer not to say">Prefer not to say</option>
-                    </select>
-                    {errors.newPersonGender && <p className="mt-1 text-xs text-red-600">{errors.newPersonGender}</p>}
-                  </div>
+          {/* New Care Recipient inline form */}
+          {showAddNew && (
+            <div className="mb-6 rounded-lg border border-gray-200 bg-gray-50 p-5">
+              <p className="text-sm font-semibold text-gray-800 mb-4">New Care Recipient Profile</p>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="col-span-2">
+                  <label className="block text-sm mb-1">Full Name <span className="text-red-500">*</span></label>
+                  <input
+                    type="text"
+                    value={newPersonName}
+                    onChange={(e) => {
+                      setNewPersonName(e.target.value);
+                      if (e.target.value.trim()) setErrors((prev) => ({ ...prev, newPersonName: undefined }));
+                    }}
+                    placeholder="e.g., Margaret Thompson"
+                    className={`w-full px-4 py-2.5 border rounded-lg bg-white ${errors.newPersonName ? "border-red-400 bg-red-50" : "border-gray-300"}`}
+                  />
+                  {errors.newPersonName && <p className="mt-1 text-xs text-red-600">{errors.newPersonName}</p>}
+                </div>
+                <div>
+                  <label className="block text-sm mb-1">Age <span className="text-red-500">*</span></label>
+                  <input
+                    type="number"
+                    value={newPersonAge}
+                    min={1}
+                    max={130}
+                    onChange={(e) => {
+                      setNewPersonAge(e.target.value);
+                      if (e.target.value) setErrors((prev) => ({ ...prev, newPersonAge: undefined }));
+                    }}
+                    placeholder="e.g., 72"
+                    className={`w-full px-4 py-2.5 border rounded-lg bg-white ${errors.newPersonAge ? "border-red-400 bg-red-50" : "border-gray-300"}`}
+                  />
+                  {errors.newPersonAge && <p className="mt-1 text-xs text-red-600">{errors.newPersonAge}</p>}
+                </div>
+                <div>
+                  <label className="block text-sm mb-1">Gender <span className="text-red-500">*</span></label>
+                  <select
+                    value={newPersonGender}
+                    onChange={(e) => {
+                      setNewPersonGender(e.target.value);
+                      if (e.target.value) setErrors((prev) => ({ ...prev, newPersonGender: undefined }));
+                    }}
+                    className={`w-full px-4 py-2.5 border rounded-lg bg-white ${errors.newPersonGender ? "border-red-400 bg-red-50" : "border-gray-300"}`}
+                  >
+                    <option value="">Select gender</option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                    <option value="Other">Other</option>
+                    <option value="Prefer not to say">Prefer not to say</option>
+                  </select>
+                  {errors.newPersonGender && <p className="mt-1 text-xs text-red-600">{errors.newPersonGender}</p>}
                 </div>
               </div>
             </div>
           )}
+
+          {/* Upload Date */}
+          <div className="mb-6">
+            <label className="block text-sm mb-2">
+              Upload Date <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="date"
+              value={uploadDate}
+              max={new Date().toISOString().split("T")[0]}
+              onChange={(e) => {
+                setUploadDate(e.target.value);
+                if (e.target.value) setErrors((prev) => ({ ...prev, uploadDate: undefined }));
+              }}
+              className={`w-full px-4 py-3 border rounded-lg ${errors.uploadDate ? "border-red-500 bg-red-50" : "border-gray-300"}`}
+            />
+            {errors.uploadDate && (
+              <p className="mt-1.5 text-xs text-red-600">{errors.uploadDate}</p>
+            )}
+          </div>
 
           {/* Audio Upload Zone */}
           <div className="mb-6">
@@ -409,9 +378,7 @@ export function Upload() {
                   </div>
                 ) : (
                   <div className="flex flex-col items-center">
-                    <p className="text-gray-900 mb-2">
-                      Drag and drop your audio file here
-                    </p>
+                    <p className="text-gray-900 mb-2">Drag and drop your audio file here</p>
                     <p className="text-sm text-gray-600 mb-4">or click to browse files</p>
                     <p className="text-xs text-gray-500">
                       Supported formats: MP3, WAV, M4A &nbsp;·&nbsp; Max {MAX_FILE_SIZE_MB} MB
@@ -438,7 +405,7 @@ export function Upload() {
                 className="mt-1 w-4 h-4"
               />
               <span className="text-sm text-gray-900">
-                I confirm that informed consent has been obtained from the person for this
+                I confirm that informed consent has been obtained from the care recipient for this
                 recording to be used for clinical assessment purposes.{" "}
                 <span className="text-red-500">*</span>
                 <div className="text-xs text-gray-500 mt-1">

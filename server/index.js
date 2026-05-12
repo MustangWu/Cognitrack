@@ -498,6 +498,20 @@ app.get("/api/persons/:personId/history", async (req, res) => {
   }
 });
 
+// List all persons
+app.get("/api/persons", async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT person_id, name, age, gender, risk_level, last_visit
+       FROM person ORDER BY name ASC`,
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Database query failed" });
+  }
+});
+
 // Person lookup
 app.get("/api/persons/:personId", async (req, res) => {
   try {
