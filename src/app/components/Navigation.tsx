@@ -45,6 +45,16 @@ export function Navigation() {
             Results
           </Link>
           <Link
+            to="/flashcards"
+            className={`text-sm pb-1 ${
+              location.pathname === "/flashcards"
+                ? "text-gray-900 font-medium border-b-2 border-blue-600"
+                : "text-gray-600 hover:text-gray-900"
+            }`}
+          >
+            Flashcards
+          </Link>
+          <Link
             to="/"
             className={`text-sm pb-1 ${
               location.pathname === "/"
