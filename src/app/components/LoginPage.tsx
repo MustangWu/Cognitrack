@@ -76,7 +76,7 @@ export function LoginPage() {
                 if (email) login(email);
               }}
               onError={() => {
-                setError("Google 登录失败或已取消，请重试。");
+                setError("Sign-in failed or was cancelled. Please try again.");
               }}
               useOneTap
               width="100%"
