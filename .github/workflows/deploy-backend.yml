@@ -22,6 +22,8 @@ jobs:
 
       - name: Build frontend
         run: npm run build
+        env:
+          VITE_GOOGLE_CLIENT_ID: ${{ secrets.VITE_GOOGLE_CLIENT_ID }}
 
       - name: Clean dev dependencies for deployment
         run: npm prune --production
