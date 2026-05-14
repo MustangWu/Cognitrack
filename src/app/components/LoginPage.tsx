@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { GoogleLogin } from "@react-oauth/google";
 import { useAuth } from "../context/AuthContext";
 
@@ -12,6 +13,7 @@ function decodeEmail(credential: string): string {
 
 export function LoginPage() {
   const { login } = useAuth();
+  const [error, setError] = useState<string | null>(null);
 
   return (
     <div className="min-h-screen flex">
@@ -69,11 +71,12 @@ export function LoginPage() {
             <p className="text-sm font-medium text-gray-700">Sign in with Google</p>
             <GoogleLogin
               onSuccess={(credentialResponse) => {
+                setError(null);
                 const email = decodeEmail(credentialResponse.credential ?? "");
                 if (email) login(email);
               }}
               onError={() => {
-                console.error("Google sign-in failed");
+                setError("Google 登录失败或已取消，请重试。");
               }}
               useOneTap
               width="100%"
@@ -82,6 +85,14 @@ export function LoginPage() {
               theme="outline"
               size="large"
             />
+            {error && (
+              <div className="flex items-center gap-2 rounded-md bg-red-50 border border-red-200 px-3 py-2">
+                <svg className="w-4 h-4 text-red-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M12 3a9 9 0 100 18A9 9 0 0012 3z" />
+                </svg>
+                <p className="text-sm text-red-600">{error}</p>
+              </div>
+            )}
           </div>
         </div>
       </div>
