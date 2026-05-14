@@ -4,6 +4,12 @@ import { useNavigate } from "react-router";
 import jsPDF from "jspdf";
 import { toast } from "sonner";
 import { useSession, type AnalysisResult } from "../context/SessionContext";
+import {
+  Tooltip as UITooltip,
+  TooltipTrigger,
+  TooltipContent,
+} from "../components/ui/tooltip";
+
 
 type BiomarkerKey = "mlu_score" | "pause_ratio" | "type_token_ratio" | "filler_word_count" | "syntactic_complexity" | "overall_risk";
 
@@ -25,6 +31,13 @@ const EXPLAIN_TITLES: Record<BiomarkerKey, string> = {
   syntactic_complexity: "Syntactic Complexity",
   overall_risk: "Overall Risk",
 };
+
+const biomarkers = {
+  mlu_score :"Measures the average number of words per sentence. Cognitive decline often shortens sentence length as persons struggle to maintain complex grammar and thought structures.",
+  pause_ratio:"Tracks the frequency and duration of pauses during speech. Increased hesitation can indicate slowed verbal processing and word-retrieval difficulties common in early dementia.",
+  type_token_ratio:"Measures lexical diversity — the proportion of unique words used. A declining TTR reflects reduced vocabulary, a hallmark of early Alzheimer's and MCI.",
+  filler_word_count:'Counts words like "um", "uh", and "you know". A rising filler rate signals word-finding difficulty, one of the earliest detectable signs of cognitive impairment.',
+}
 
 const borderClass: Record<BiomarkerKey, string> = {
   mlu_score: "border-l-4 border-blue-500",
@@ -276,15 +289,22 @@ export function Results() {
           <EmptyState />
         ) : (
           <>
-            <div className="mb-8">
-              <h1 className="text-3xl text-gray-900 mb-2">Analysis Results</h1>
-              <p className="text-gray-600 leading-relaxed">
-                Care Recipient: {s.personName} ({s.personId})
-                <br />
-                Recording Date: {formatDate(s.recordingDate)}
-              </p>
-            </div>
-
+            <div className="flex items-center justify-between mb-8">
+  <div>
+    <h1 className="text-3xl text-gray-900 mb-2">Analysis Results</h1>
+    <p className="text-gray-600 leading-relaxed">
+      Care Recipient: {s.personName} ({s.personId})
+      <br />
+      Recording Date: {formatDate(s.recordingDate)}
+    </p>
+  </div>
+  <div
+    className={`inline-flex w-fit px-8 py-4 rounded-2xl text-xl font-semibold shrink-0 ${riskStyles(s.dementia_risk_level)}`}
+    role="status"
+  >
+    {s.dementia_risk_level}
+  </div>
+</div>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <div className="lg:col-span-2 space-y-6">
                 <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
@@ -305,12 +325,7 @@ export function Results() {
                 </div>
 
                 <div className="flex flex-wrap gap-4">
-                  <div
-                    className={`px-6 py-3 rounded-lg text-sm font-medium ${riskStyles(s.dementia_risk_level)}`}
-                    role="status"
-                  >
-                    {s.dementia_risk_level}
-                  </div>
+  
                   <button
                     type="button"
                     onClick={() => exportToPDF(s)}
@@ -338,10 +353,23 @@ export function Results() {
                 {FOUR_METRICS.map((key) => {
                   const v = s[key] as number;
                   const f = formatMetricValue(key, v);
+                   const tooltipText= biomarkers[key]
                   return (
                     <div key={key} className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
-                      <div className="flex justify-between items-baseline gap-2 mb-3">
+                   <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
                         <h3 className="text-gray-900 text-base font-normal">{METRIC_LABEL[key]}</h3>
+                                                <UITooltip>
+      <TooltipTrigger asChild>
+        <span className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full border border-gray-400 text-gray-400 text-[9px] leading-none cursor-help hover:border-gray-600 hover:text-gray-600 shrink-0 select-none">
+          i
+        </span>
+      </TooltipTrigger>
+      <TooltipContent side="top" className="max-w-[240px] text-center">
+       {tooltipText}
+      </TooltipContent>
+    </UITooltip>
+    </div>
                         <span className="text-lg font-semibold text-gray-900 tabular-nums shrink-0">{f.text}</span>
                       </div>
                       <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
