@@ -7,3 +7,4 @@ dist
 !.env.example
 medgemma-gguf
 package-lock.json
+*.zip
