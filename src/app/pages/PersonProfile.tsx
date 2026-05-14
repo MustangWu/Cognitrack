@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams, Link } from "react-router";
+import { useParams, Link, useNavigate } from "react-router";
 import { Navigation } from "../components/Navigation";
 
 interface HistoryRecord {
@@ -15,8 +15,12 @@ interface HistoryRecord {
 }
 
 interface Person {
+  person_id: string;
   name: string;
   age: number;
+  gender: string;
+  risk_level: string | null;
+  last_visit: string | null;
 }
 
 function RiskBadge({ level }: { level: string }) {
@@ -32,12 +36,140 @@ function RiskBadge({ level }: { level: string }) {
   );
 }
 
+function EditModal({ person, onClose, onSave }: {
+  person: Person;
+  onClose: () => void;
+  onSave: (updated: Person) => void;
+}) {
+  const [name, setName] = useState(person.name);
+  const [age, setAge] = useState(String(person.age));
+  const [gender, setGender] = useState(person.gender);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/persons/${person.person_id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, age: parseInt(age), gender }),
+      });
+      if (!res.ok) throw new Error("Failed to update");
+      const updated = await res.json();
+      onSave(updated);
+    } catch {
+      setError("Failed to save changes. Please try again.");
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-sm mx-4 p-6">
+        <h2 className="text-base font-semibold text-gray-900 mb-5">Edit Profile</h2>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Name</label>
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Age</label>
+            <input
+              type="number"
+              min={1}
+              max={130}
+              value={age}
+              onChange={(e) => setAge(e.target.value)}
+              required
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Gender</label>
+            <select
+              value={gender}
+              onChange={(e) => setGender(e.target.value)}
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+            >
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          {error && <p className="text-xs text-red-500">{error}</p>}
+          <div className="flex gap-2 pt-1">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 border border-gray-200 rounded-lg py-2 text-sm text-gray-600 hover:bg-gray-50 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={saving}
+              className="flex-1 bg-blue-600 text-white rounded-lg py-2 text-sm hover:bg-blue-700 transition-colors disabled:opacity-50"
+            >
+              {saving ? "Saving..." : "Save"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function DeleteConfirm({ name, onClose, onConfirm, deleting }: {
+  name: string;
+  onClose: () => void;
+  onConfirm: () => void;
+  deleting: boolean;
+}) {
+  return (
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-sm mx-4 p-6">
+        <h2 className="text-base font-semibold text-gray-900 mb-2">Delete Profile</h2>
+        <p className="text-sm text-gray-500 mb-6">
+          Are you sure you want to delete <span className="font-medium text-gray-800">{name}</span>? This will permanently remove all their analysis records.
+        </p>
+        <div className="flex gap-2">
+          <button
+            onClick={onClose}
+            className="flex-1 border border-gray-200 rounded-lg py-2 text-sm text-gray-600 hover:bg-gray-50 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            disabled={deleting}
+            className="flex-1 bg-red-500 text-white rounded-lg py-2 text-sm hover:bg-red-600 transition-colors disabled:opacity-50"
+          >
+            {deleting ? "Deleting..." : "Delete"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function PersonProfile() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const [person, setPerson] = useState<Person | null>(null);
   const [history, setHistory] = useState<HistoryRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showEdit, setShowEdit] = useState(false);
+  const [showDelete, setShowDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -55,6 +187,17 @@ export function PersonProfile() {
         setLoading(false);
       });
   }, [id]);
+
+  const handleDelete = async () => {
+    if (!person) return;
+    setDeleting(true);
+    try {
+      await fetch(`/api/persons/${person.person_id}`, { method: "DELETE" });
+      navigate("/persons");
+    } catch {
+      setDeleting(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -74,10 +217,34 @@ export function PersonProfile() {
           <div className="text-sm text-red-500">{error}</div>
         ) : (
           <>
-            <h1 className="text-2xl font-bold text-gray-900">{person?.name}</h1>
-            <p className="text-sm text-gray-500 mt-1 mb-8">
-              Analysis History ({history.length} total {history.length === 1 ? "upload" : "uploads"})
-            </p>
+            <div className="flex items-start justify-between mb-8">
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">{person?.name}</h1>
+                <p className="text-sm text-gray-500 mt-1">
+                  Analysis History ({history.length} total {history.length === 1 ? "upload" : "uploads"})
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setShowEdit(true)}
+                  className="inline-flex items-center gap-1.5 text-sm text-gray-600 border border-gray-200 rounded-lg px-3 py-1.5 hover:bg-gray-50 transition-colors"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" />
+                  </svg>
+                  Edit
+                </button>
+                <button
+                  onClick={() => setShowDelete(true)}
+                  className="inline-flex items-center gap-1.5 text-sm text-red-500 border border-red-200 rounded-lg px-3 py-1.5 hover:bg-red-50 transition-colors"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                  </svg>
+                  Delete
+                </button>
+              </div>
+            </div>
 
             {history.length === 0 ? (
               <div className="bg-white rounded-xl border border-gray-200 py-16 text-center text-sm text-gray-400">
@@ -141,6 +308,26 @@ export function PersonProfile() {
           </>
         )}
       </div>
+
+      {showEdit && person && (
+        <EditModal
+          person={person}
+          onClose={() => setShowEdit(false)}
+          onSave={(updated) => {
+            setPerson(updated);
+            setShowEdit(false);
+          }}
+        />
+      )}
+
+      {showDelete && person && (
+        <DeleteConfirm
+          name={person.name}
+          onClose={() => setShowDelete(false)}
+          onConfirm={handleDelete}
+          deleting={deleting}
+        />
+      )}
     </div>
   );
 }

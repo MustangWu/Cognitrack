@@ -545,6 +545,58 @@ app.get("/api/persons/:personId", async (req, res) => {
   }
 });
 
+// Update person
+app.put("/api/persons/:personId", async (req, res) => {
+  try {
+    const { name, age, gender } = req.body;
+    if (!name || !age || !gender) {
+      return res.status(400).json({ error: "name, age, and gender are required" });
+    }
+    const result = await pool.query(
+      `UPDATE person SET name = $1, age = $2, gender = $3
+       WHERE person_id = $4
+       RETURNING person_id, name, age, gender, risk_level, last_visit`,
+      [name, parseInt(age), gender, req.params.personId],
+    );
+    if (result.rows.length === 0)
+      return res.status(404).json({ error: "Person not found" });
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Database query failed" });
+  }
+});
+
+// Delete person and all associated data
+app.delete("/api/persons/:personId", async (req, res) => {
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    await client.query(
+      `DELETE FROM risk_assessment
+       WHERE analysis_id IN (
+         SELECT analysis_id FROM biomarker_analysis WHERE person_id = $1
+       )`,
+      [req.params.personId],
+    );
+    await client.query(`DELETE FROM biomarker_analysis WHERE person_id = $1`, [req.params.personId]);
+    await client.query(`DELETE FROM recording WHERE person_id = $1`, [req.params.personId]);
+    const result = await client.query(`DELETE FROM person WHERE person_id = $1 RETURNING person_id`, [req.params.personId]);
+    if (result.rows.length === 0) {
+      await client.query("ROLLBACK");
+      return res.status(404).json({ error: "Person not found" });
+    }
+    await client.query("COMMIT");
+    res.json({ deleted: req.params.personId });
+  } catch (err) {
+    await client.query("ROLLBACK");
+    console.error(err);
+    res.status(500).json({ error: "Database query failed" });
+  } finally {
+    client.release();
+  }
+});
+
 // Create person
 app.post("/api/persons", async (req, res) => {
   try {
