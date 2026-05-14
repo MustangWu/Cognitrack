@@ -502,8 +502,24 @@ app.get("/api/persons/:personId/history", async (req, res) => {
 app.get("/api/persons", async (req, res) => {
   try {
     const result = await pool.query(
-      `SELECT person_id, name, age, gender, risk_level, last_visit
-       FROM person ORDER BY name ASC`,
+      `SELECT
+         p.person_id,
+         p.name,
+         p.age,
+         p.gender,
+         p.risk_level,
+         p.last_visit,
+         COUNT(DISTINCT r.recording_id)::int AS total_uploads,
+         (SELECT ra.trend_direction
+          FROM risk_assessment ra
+          JOIN biomarker_analysis ba ON ra.analysis_id = ba.analysis_id
+          WHERE ba.person_id = p.person_id
+          ORDER BY ba.analysis_timestamp DESC
+          LIMIT 1) AS risk_trend
+       FROM person p
+       LEFT JOIN recording r ON p.person_id = r.person_id
+       GROUP BY p.person_id, p.name, p.age, p.gender, p.risk_level, p.last_visit
+       ORDER BY p.name ASC`,
     );
     res.json(result.rows);
   } catch (err) {
