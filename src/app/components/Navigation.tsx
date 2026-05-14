@@ -1,7 +1,9 @@
 import { Link, useLocation } from "react-router";
+import { useAuth } from "../context/AuthContext";
 
 export function Navigation() {
   const location = useLocation();
+  const { email, logout } = useAuth();
 
   return (
     <header className="bg-white border-b border-gray-200 px-6 py-4">
@@ -65,6 +67,17 @@ export function Navigation() {
             About
           </Link>
         </nav>
+        {email && (
+          <div className="ml-auto flex items-center gap-3">
+            <span className="text-sm text-gray-600">{email}</span>
+            <button
+              onClick={logout}
+              className="text-sm text-gray-500 hover:text-gray-800 border border-gray-200 rounded px-3 py-1 hover:bg-gray-50 transition-colors"
+            >
+              Sign out
+            </button>
+          </div>
+        )}
       </div>
     </header>
   );
