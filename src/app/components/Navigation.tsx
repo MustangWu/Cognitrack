@@ -27,6 +27,16 @@ export function Navigation() {
             Dashboard
           </Link>
           <Link
+            to="/persons"
+            className={`text-sm pb-1 ${
+              location.pathname.startsWith("/person")
+                ? "text-gray-900 font-medium border-b-2 border-blue-600"
+                : "text-gray-600 hover:text-gray-900"
+            }`}
+          >
+            Care Recipients
+          </Link>
+          <Link
             to="/upload"
             className={`text-sm pb-1 ${
               location.pathname === "/upload"
