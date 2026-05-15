@@ -1,0 +1,28 @@
+# MedGemma GPU inference server — requirements
+# Tested on g4dn.xlarge (NVIDIA T4, 16 GB VRAM) with CUDA 12.8
+# Install with:
+#   pip install -r requirements.txt
+
+# --- PyTorch (CUDA 12.8 wheel, matches cu128 build) ---
+# For CUDA 12.1 wheels instead, swap the index URL to:
+#   https://download.pytorch.org/whl/cu121
+torch==2.10.0 --index-url https://download.pytorch.org/whl/cu128
+
+# --- Hugging Face stack ---
+transformers==5.6.2
+accelerate==1.13.0
+huggingface_hub[cli]>=1.12.0   # includes huggingface-cli for weight download
+
+# --- API server ---
+fastapi==0.136.1
+uvicorn[standard]==0.46.0
+pydantic==2.13.3
+
+# --- Model dependencies ---
+sentencepiece>=0.2.0            # tokenizer
+pillow>=10.0.0                  # image preprocessing (processor uses it)
+vllm                             # OpenAI-compatible GPU serving backend
+
+# --- Optional: Flash Attention 2 (~2x throughput on T4/A10G) ---
+# Requires a CUDA-capable build environment. Install separately AFTER the above:
+#   pip install flash-attn --no-build-isolation
