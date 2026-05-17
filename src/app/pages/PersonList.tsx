@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import { Navigation } from "../components/Navigation";
+import { useAuth } from "../context/AuthContext";
 
 interface Person {
   person_id: string;
@@ -38,12 +39,13 @@ function RiskTrendBadge({ trend }: { trend: string | null }) {
 }
 
 export function PersonList() {
+  const { email } = useAuth();
   const [persons, setPersons] = useState<Person[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch("/api/persons")
+    fetch("/api/persons", { headers: { "X-User-Email": email! } })
       .then((r) => r.json())
       .then((data) => {
         setPersons(data);
@@ -53,7 +55,7 @@ export function PersonList() {
         setError("Failed to load care recipients.");
         setLoading(false);
       });
-  }, []);
+  }, [email]);
 
   return (
     <div className="min-h-screen bg-gray-50">

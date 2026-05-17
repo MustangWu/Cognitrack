@@ -1,17 +1,10 @@
 import { createContext, useContext, useState, type ReactNode } from "react";
+import { useAuth } from "./AuthContext";
 
-function generateId(): string {
-  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
-    return crypto.randomUUID();
-  }
-  return Date.now().toString(36) + Math.random().toString(36).slice(2);
-}
-
-const SESSION_DATA_KEY = "cognitrack_session_data";
-const SESSION_ID_KEY = "cognitrack_session_id";
-const LAST_SESSION_KEY = "cognitrack_last_session";
+const lastAnalysisKey = (email: string) => `cognitrack_last_analysis_${email}`;
 
 export interface AnalysisResult {
+  analysisId: number;
   personId: string;
   personName: string;
   recordingDate: string;
@@ -31,57 +24,37 @@ interface SessionContextValue {
   sessionData: AnalysisResult | null;
   setSessionData: (data: AnalysisResult) => void;
   clearSession: () => void;
-  wasExpired: boolean;
-  dismissExpiry: () => void;
+  savedAnalysisId: number | null;
 }
 
 const SessionContext = createContext<SessionContextValue | null>(null);
 
-function initSession(): { data: AnalysisResult | null; wasExpired: boolean } {
-  const sessionId = sessionStorage.getItem(SESSION_ID_KEY);
-  const lastSession = localStorage.getItem(LAST_SESSION_KEY);
-
-  // Had a previous session but current tab session is fresh → expired
-  const wasExpired = !sessionId && !!lastSession;
-
-  if (!sessionId) {
-    const newId = generateId();
-    sessionStorage.setItem(SESSION_ID_KEY, newId);
-    localStorage.setItem(LAST_SESSION_KEY, newId);
-    return { data: null, wasExpired };
-  }
-
-  const raw = sessionStorage.getItem(SESSION_DATA_KEY);
-  const data = raw ? (JSON.parse(raw) as AnalysisResult) : null;
-  return { data, wasExpired: false };
-}
-
 export function SessionProvider({ children }: { children: ReactNode }) {
-  const [{ data, wasExpired: initialExpired }] = useState(initSession);
-  const [sessionData, setSessionDataState] = useState<AnalysisResult | null>(data);
-  const [wasExpired, setWasExpired] = useState(initialExpired);
+  const { email } = useAuth();
+  const key = lastAnalysisKey(email!);
+
+  const [sessionData, setSessionDataState] = useState<AnalysisResult | null>(null);
+  const [savedAnalysisId, setSavedAnalysisId] = useState<number | null>(() => {
+    // Clean up legacy keys from the old sessionStorage-based cache
+    localStorage.removeItem("cognitrack_last_session");
+    const stored = localStorage.getItem(key);
+    return stored ? Number(stored) : null;
+  });
 
   const setSessionData = (result: AnalysisResult) => {
-    sessionStorage.setItem(SESSION_DATA_KEY, JSON.stringify(result));
+    localStorage.setItem(key, String(result.analysisId));
     setSessionDataState(result);
-    setWasExpired(false);
+    setSavedAnalysisId(result.analysisId);
   };
 
   const clearSession = () => {
-    sessionStorage.removeItem(SESSION_DATA_KEY);
-    sessionStorage.removeItem(SESSION_ID_KEY);
-    localStorage.removeItem(LAST_SESSION_KEY);
-    const newId = generateId();
-    sessionStorage.setItem(SESSION_ID_KEY, newId);
-    localStorage.setItem(LAST_SESSION_KEY, newId);
+    localStorage.removeItem(key);
     setSessionDataState(null);
-    setWasExpired(false);
+    setSavedAnalysisId(null);
   };
 
-  const dismissExpiry = () => setWasExpired(false);
-
   return (
-    <SessionContext.Provider value={{ sessionData, setSessionData, clearSession, wasExpired, dismissExpiry }}>
+    <SessionContext.Provider value={{ sessionData, setSessionData, clearSession, savedAnalysisId }}>
       {children}
     </SessionContext.Provider>
   );

@@ -466,6 +466,40 @@ app.post("/api/recordings", upload.single("audio"), async (req, res) => {
   }
 });
 
+// Fetch a single analysis by ID
+app.get("/api/analyses/:analysisId", async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT
+         BA.analysis_id,
+         BA.mlu_score,
+         BA.pause_ratio,
+         BA.type_token_ratio,
+         BA.filler_word_count,
+         BA.syntactic_complexity,
+         BA.biomarker_summaries,
+         BA.person_id,
+         RA.dementia_risk_level,
+         RA.confidence_score,
+         RA.trend_direction,
+         R.recording_date,
+         R.text_transcript,
+         P.name AS person_name
+       FROM biomarker_analysis BA
+       JOIN risk_assessment RA ON BA.analysis_id = RA.analysis_id
+       JOIN recording R        ON BA.recording_id = R.recording_id
+       JOIN person P           ON BA.person_id = P.person_id
+       WHERE BA.analysis_id = $1`,
+      [req.params.analysisId],
+    );
+    if (result.rows.length === 0) return res.status(404).json({ error: "Analysis not found" });
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Database query failed" });
+  }
+});
+
 // Person biomarker history — includes biomarker_summaries
 app.get("/api/persons/:personId/history", async (req, res) => {
   try {
@@ -500,6 +534,8 @@ app.get("/api/persons/:personId/history", async (req, res) => {
 
 // List all persons
 app.get("/api/persons", async (req, res) => {
+  const userEmail = req.headers["x-user-email"];
+  if (!userEmail) return res.status(401).json({ error: "Unauthorized" });
   try {
     const result = await pool.query(
       `SELECT
@@ -518,8 +554,10 @@ app.get("/api/persons", async (req, res) => {
           LIMIT 1) AS risk_trend
        FROM person p
        LEFT JOIN recording r ON p.person_id = r.person_id
+       WHERE p.created_by = $1
        GROUP BY p.person_id, p.name, p.age, p.gender, p.risk_level, p.last_visit
        ORDER BY p.name ASC`,
+      [userEmail],
     );
     res.json(result.rows);
   } catch (err) {
@@ -600,7 +638,8 @@ app.delete("/api/persons/:personId", async (req, res) => {
 // Create person
 app.post("/api/persons", async (req, res) => {
   try {
-    const { person_id, name, age, gender, created_by } = req.body;
+    const { person_id, name, age, gender } = req.body;
+    const created_by = req.headers["x-user-email"] || null;
     if (!person_id || !name || !age || !gender) {
       return res
         .status(400)
@@ -610,7 +649,7 @@ app.post("/api/persons", async (req, res) => {
       `INSERT INTO person (person_id, name, age, gender, created_by)
        VALUES ($1, $2, $3, $4, $5)
        RETURNING person_id, name, age, gender, risk_level, last_visit`,
-      [person_id, name, parseInt(age), gender, created_by || null],
+      [person_id, name, parseInt(age), gender, created_by],
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {
