@@ -66,10 +66,12 @@ const pdfColor: Record<BiomarkerKey, [number, number, number]> = {
 };
 
 function formatMetricValue(k: MetricKey, v: number): { text: string; bar: number } {
-  if (k === "pause_ratio") return { text: `${(v * 100).toFixed(1)}%`, bar: Math.min(1, v) };
-  if (k === "type_token_ratio") return { text: v.toFixed(3), bar: Math.min(1, v) };
-  if (k === "filler_word_count") return { text: String(v), bar: Math.min(1, v / 20) };
-  return { text: v.toFixed(2), bar: Math.min(1, v / 15) };
+  const n = Number(v);
+  if (!isFinite(n)) return { text: "N/A", bar: 0 };
+  if (k === "pause_ratio") return { text: `${(n * 100).toFixed(1)}%`, bar: Math.min(1, n) };
+  if (k === "type_token_ratio") return { text: n.toFixed(3), bar: Math.min(1, n) };
+  if (k === "filler_word_count") return { text: String(n), bar: Math.min(1, n / 20) };
+  return { text: n.toFixed(2), bar: Math.min(1, n / 15) };
 }
 
 function formatDate(iso: string): string {

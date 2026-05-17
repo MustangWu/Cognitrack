@@ -253,9 +253,8 @@ export function PersonProfile() {
             ) : (
               <div className="space-y-4">
                 {history.map((record) => {
-                  const dt = new Date(record.analysis_timestamp);
-                  const dateStr = dt.toISOString().split("T")[0];
-                  const timeStr = dt.toLocaleTimeString("en-AU", { hour: "2-digit", minute: "2-digit", hour12: false });
+                  const dateStr = record.recording_date.split("T")[0];
+                  const timeStr = new Date(record.analysis_timestamp).toLocaleTimeString("en-AU", { hour: "2-digit", minute: "2-digit", hour12: false });
 
                   return (
                     <div key={record.analysis_id} className="bg-white rounded-xl border border-gray-200 p-5">
