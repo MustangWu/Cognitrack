@@ -66,10 +66,12 @@ const pdfColor: Record<BiomarkerKey, [number, number, number]> = {
 };
 
 function formatMetricValue(k: MetricKey, v: number): { text: string; bar: number } {
-  if (k === "pause_ratio") return { text: `${(v * 100).toFixed(1)}%`, bar: Math.min(1, v) };
-  if (k === "type_token_ratio") return { text: v.toFixed(3), bar: Math.min(1, v) };
-  if (k === "filler_word_count") return { text: String(v), bar: Math.min(1, v / 20) };
-  return { text: v.toFixed(2), bar: Math.min(1, v / 15) };
+  const n = Number(v);
+  if (!isFinite(n)) return { text: "N/A", bar: 0 };
+  if (k === "pause_ratio") return { text: `${(n * 100).toFixed(1)}%`, bar: Math.min(1, n) };
+  if (k === "type_token_ratio") return { text: n.toFixed(3), bar: Math.min(1, n) };
+  if (k === "filler_word_count") return { text: String(n), bar: Math.min(1, n / 20) };
+  return { text: n.toFixed(2), bar: Math.min(1, n / 15) };
 }
 
 function formatDate(iso: string): string {
@@ -268,14 +270,14 @@ export function Results() {
           personName: row.person_name,
           recordingDate: row.recording_date,
           transcript: row.text_transcript ?? null,
-          mlu_score: row.mlu_score,
-          pause_ratio: row.pause_ratio,
-          type_token_ratio: row.type_token_ratio,
-          filler_word_count: row.filler_word_count,
-          syntactic_complexity: row.syntactic_complexity,
+          mlu_score: parseFloat(row.mlu_score),
+          pause_ratio: parseFloat(row.pause_ratio),
+          type_token_ratio: parseFloat(row.type_token_ratio),
+          filler_word_count: parseFloat(row.filler_word_count),
+          syntactic_complexity: parseFloat(row.syntactic_complexity),
           biomarker_summaries: row.biomarker_summaries ?? null,
           dementia_risk_level: row.dementia_risk_level,
-          confidence_score: row.confidence_score,
+          confidence_score: parseFloat(row.confidence_score),
           trend_direction: row.trend_direction,
         });
       })
