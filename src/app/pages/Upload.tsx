@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { Check, Plus } from "lucide-react";
 import { useSession } from "../context/SessionContext";
+import { useAuth } from "../context/AuthContext";
 
 const MAX_FILE_SIZE_MB = 100;
 const ACCEPTED_FORMATS = [".mp3", ".wav", ".m4a"];
@@ -60,14 +61,15 @@ export function Upload() {
 
   const navigate = useNavigate();
   const { setSessionData } = useSession();
+  const { email } = useAuth();
 
   useEffect(() => {
-    fetch("/api/persons")
+    fetch("/api/persons", { headers: { "X-User-Email": email! } })
       .then((r) => r.json())
       .then((data) => setPersons(Array.isArray(data) ? data : []))
       .catch(() => setPersons([]))
       .finally(() => setPersonsLoading(false));
-  }, []);
+  }, [email]);
 
   const loadDemo = () => {
     setSessionData({
@@ -154,7 +156,7 @@ export function Upload() {
       if (showAddNew) {
         const createRes = await fetch("/api/persons", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", "X-User-Email": email! },
           body: JSON.stringify({
             person_id: resolvedPersonId,
             name: resolvedPersonName,
@@ -186,6 +188,7 @@ export function Upload() {
       const b = result.biomarkers ?? {};
       const r = result.risk ?? {};
       setSessionData({
+        analysisId: result.analysis_id,
         personId: resolvedPersonId,
         personName: resolvedPersonName,
         recordingDate: uploadDate,

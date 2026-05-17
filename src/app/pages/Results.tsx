@@ -1,6 +1,7 @@
 import { Navigation } from "../components/Navigation";
-import { Download, FileText, UploadCloud, X, AlertCircle } from "lucide-react";
+import { Download, FileText, UploadCloud } from "lucide-react";
 import { useNavigate } from "react-router";
+import { useEffect, useState } from "react";
 import jsPDF from "jspdf";
 import { toast } from "sonner";
 import { useSession, type AnalysisResult } from "../context/SessionContext";
@@ -229,29 +230,6 @@ function exportToPDF(s: AnalysisResult) {
   doc.save(`NeuroTechCare_Report_${safeName}.pdf`);
 }
 
-function SessionExpiredBanner({ onDismiss }: { onDismiss: () => void }) {
-  return (
-    <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-lg px-5 py-4 mb-6">
-      <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5 shrink-0" />
-      <div className="flex-1">
-        <p className="text-sm font-semibold text-amber-800">Your previous session has ended</p>
-        <p className="text-sm text-amber-700 mt-0.5">
-          Because CogniTrack doesn't require an account, recordings and results are only kept for the duration of your
-          browser session. Close and reopen the browser to start fresh, or{" "}
-          <a href="/upload" className="underline font-medium">upload a new recording</a> to begin.
-        </p>
-      </div>
-      <button
-        type="button"
-        onClick={onDismiss}
-        aria-label="Dismiss"
-        className="text-amber-500 hover:text-amber-700 transition-colors"
-      >
-        <X className="w-4 h-4" />
-      </button>
-    </div>
-  );
-}
 
 function EmptyState() {
   return (
@@ -274,8 +252,37 @@ function EmptyState() {
 }
 
 export function Results() {
-  const { sessionData, clearSession, wasExpired, dismissExpiry } = useSession();
+  const { sessionData, setSessionData, clearSession, savedAnalysisId } = useSession();
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (sessionData || !savedAnalysisId) return;
+    setLoading(true);
+    fetch(`/api/analyses/${savedAnalysisId}`)
+      .then((r) => (r.ok ? r.json() : Promise.reject(r)))
+      .then((row) => {
+        setSessionData({
+          analysisId: row.analysis_id,
+          personId: row.person_id,
+          personName: row.person_name,
+          recordingDate: row.recording_date,
+          transcript: row.text_transcript ?? null,
+          mlu_score: row.mlu_score,
+          pause_ratio: row.pause_ratio,
+          type_token_ratio: row.type_token_ratio,
+          filler_word_count: row.filler_word_count,
+          syntactic_complexity: row.syntactic_complexity,
+          biomarker_summaries: row.biomarker_summaries ?? null,
+          dementia_risk_level: row.dementia_risk_level,
+          confidence_score: row.confidence_score,
+          trend_direction: row.trend_direction,
+        });
+      })
+      .catch(() => toast.error("Failed to load previous results."))
+      .finally(() => setLoading(false));
+  }, [savedAnalysisId, sessionData, setSessionData]);
+
   const s = sessionData;
 
   return (
@@ -283,9 +290,11 @@ export function Results() {
       <Navigation />
 
       <div className="max-w-7xl mx-auto px-6 py-12">
-        {wasExpired && <SessionExpiredBanner onDismiss={dismissExpiry} />}
-
-        {!s ? (
+        {loading ? (
+          <div className="flex justify-center items-center py-24">
+            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#2d5a8f]" />
+          </div>
+        ) : !s ? (
           <EmptyState />
         ) : (
           <>
